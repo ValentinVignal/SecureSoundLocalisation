@@ -1,4 +1,4 @@
-package com.e.audiorecorder26
+package com.e.sllapp
 
 import android.Manifest
 import android.annotation.SuppressLint
@@ -12,6 +12,7 @@ import android.os.Environment
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.e.sllapp.R
 import kotlinx.android.synthetic.main.activity_main.*
 import java.io.File
 import java.io.IOException
