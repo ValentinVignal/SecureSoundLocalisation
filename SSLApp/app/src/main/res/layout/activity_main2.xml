@@ -7,24 +7,47 @@
     android:id="@+id/global_layout"
     >
 
-    <Switch
-        android:id="@+id/switch_debug"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_alignParentTop="true"
-        android:layout_marginTop="2dp"
-        android:layout_marginRight="5dp"
-        android:layout_alignParentRight="true"
-        android:text="Debug"
-        android:textColor="#E91E63"
-        android:textOff="OFF"
-        android:textOn="ON" />
+        android:orientation="horizontal"
+        android:id="@+id/container_switch">
+
+        <Switch
+            android:id="@+id/switch_save_record"
+            android:layout_width="0px"
+            android:layout_height="wrap_content"
+            android:layout_alignParentStart="true"
+            android:text="Save Record"
+            android:textColor="#E91E63"
+            android:layout_weight="1"
+            android:textOn="ON" />
+        <TextView
+            android:layout_width="0px"
+            android:layout_height="0px"
+            android:layout_weight="1"
+            />
+
+
+        <Switch
+            android:id="@+id/switch_debug"
+            android:layout_width="0px"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginLeft="0dp"
+            android:text="Debug"
+            android:textColor="#E91E63"
+            android:textOn="ON" />
+
+    </LinearLayout>
+
+
 
     <TextView
         android:id="@+id/textview_sound_recorder_heading"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_below="@+id/switch_debug"
+        android:layout_below="@+id/container_switch"
         android:layout_centerHorizontal="true"
         android:layout_marginTop="0dp"
         android:text="Secure Sound Localisation\n2"
@@ -42,7 +65,7 @@
         android:orientation="vertical">
 
         <com.jjoe64.graphview.GraphView
-            android:id="@+id/graph_waveform_sended"
+            android:id="@+id/graph_waveform_sent"
             android:layout_width="match_parent"
             android:layout_height="0px"
             android:layout_weight="1"

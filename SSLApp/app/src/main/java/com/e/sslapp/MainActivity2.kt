@@ -28,12 +28,13 @@ class MainActivity2 : AppCompatActivity() {
     // ------------------------------------------------------------
 
     // ---------- Debug options ----------
-    private var debug: Boolean = true
+    private var debug: Boolean = true       // Use to debug (and for example print in the terminal)
+    private var saveRecord: Boolean = false
+    private var mSaveRecord: Boolean = false // Save the state of the save_record switch at the end of the recording
 
     // ---------- State of the recorder ----------
     private var isRecording: Boolean = false
-    private var isInPause: Boolean = false
-    private var recordPath: String? = null
+    private var recordPath: String? = null      // Where data is saved
 
     // ---------- Variables for AudioRecord ----------
     private val recorderSampleRate: Int = 8000  // For emulator, put 44100 for real phone
@@ -51,10 +52,10 @@ class MainActivity2 : AppCompatActivity() {
 
     // ---------- Handle the recording datas ----------
     private val rootDirectory: File =
-        File(Environment.getExternalStorageDirectory().absolutePath + "/SSL")
-    private var lastRecord: ArrayList<Short>? = null
-    private var sendedSound: ArrayList<Double>? = null
-    private var convolutedSound: ArrayList<Double>? = null
+        File(Environment.getExternalStorageDirectory().absolutePath + "/SSL")       // Diretory where it is gonna be saved
+    private var recordedSound: ArrayList<Short>? = null     // The sound recorder by the phone
+    private var sentSound: ArrayList<Double>? = null      // The sound sent bu the Central Unit
+    private var convolutedSound: ArrayList<Double>? = null      // The convolution between recordedSound and sentSound
 
 
     // ------------------------------------------------------------
@@ -62,8 +63,14 @@ class MainActivity2 : AppCompatActivity() {
     // ------------------------------------------------------------
 
     override fun onCreate(savedInstanceState: Bundle?) {
+
+        // --------------------
+        // Call at the creation
+        // --------------------
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main2)
+
+        // ---------- Check the permission ----------
         if (ContextCompat.checkSelfPermission(
                 this,
                 Manifest.permission.RECORD_AUDIO
@@ -79,13 +86,29 @@ class MainActivity2 : AppCompatActivity() {
             )
             ActivityCompat.requestPermissions(this, permissions, 0)
         }
+        // ----- Create the directory if it doesn't exist -----
         if (!rootDirectory.exists()) {
             rootDirectory.mkdirs()
         }
 
-        recreateSendedSound()
+        // ----- Compute the supposed sent sound by the Central Unit -----
+        recreateSentSound()
+        switch_save_record.isChecked = saveRecord
 
+        // -------------------- Set what needs to be set while debug --------------------
+        if (debug) {
+            switch_debug.isChecked = true
+            global_layout.setBackgroundColor(Color.rgb(240, 240, 240))
+            textview_sound_recorder_heading.setTextColor(Color.rgb(160, 52, 52))
+        } else {
+            switch_debug.isChecked = false
+            global_layout.setBackgroundColor(Color.WHITE)
+            textview_sound_recorder_heading.setTextColor(Color.BLACK)
+        }
+
+        // -------------------- Call when Start button is pressed --------------------
         button_start_recording.setOnClickListener {
+            // If the we didn't allow
             if (ContextCompat.checkSelfPermission(
                     this,
                     Manifest.permission.RECORD_AUDIO
@@ -101,23 +124,18 @@ class MainActivity2 : AppCompatActivity() {
                 )
                 ActivityCompat.requestPermissions(this, permissions, 0)
             } else {
+                // We can start the recording
                 startRecording()
             }
         }
 
+        // -------------------- Call when Stop button is pressed --------------------
         button_stop_recording.setOnClickListener {
             stopRecording()
         }
 
-        if (debug) {
-            switch_debug.isChecked = true
-            global_layout.setBackgroundColor(Color.rgb(240, 240, 240))
-            textview_sound_recorder_heading.setTextColor(Color.rgb(160, 52, 52))
-        } else {
-            switch_debug.isChecked = false
-            global_layout.setBackgroundColor(Color.WHITE)
-            textview_sound_recorder_heading.setTextColor(Color.BLACK)
-        }
+
+        // -------------------- Call when Debug Switch changes  --------------------
         switch_debug.setOnCheckedChangeListener { buttonView, isChecked ->
             if (isChecked) {
                 debug = true
@@ -128,14 +146,18 @@ class MainActivity2 : AppCompatActivity() {
                 global_layout.setBackgroundColor(Color.WHITE)
                 textview_sound_recorder_heading.setTextColor(Color.BLACK)
             }
+        }
 
+        // -------------------- Call when Save Record Switch changes  --------------------
+        switch_save_record.setOnCheckedChangeListener { buttonView, isChecked ->
+            saveRecord = isChecked
         }
     }
 
 
+    // ---------- Use to change Short to Byte ----------
     infix fun Short.and(that: Int): Int = this.toInt().and(that)
     infix fun Short.shr(that: Int): Int = this.toInt().shr(that)
-
 
     private fun short2byte(sData: ShortArray): ByteArray {
         val shortArrsize = sData.size
@@ -149,11 +171,10 @@ class MainActivity2 : AppCompatActivity() {
 
     }
 
-
     private fun startRecording() {
         if (!isRecording) {
             try {
-                lastRecord = ArrayList<Short>()
+                recordedSound = ArrayList<Short>()      // Reset the recorded Sound
                 isRecording = true
                 Toast.makeText(this, "Recording started!", Toast.LENGTH_SHORT).show()
                 text_view_state.text = "Recording..."
@@ -162,7 +183,6 @@ class MainActivity2 : AppCompatActivity() {
                     recorderSampleRate, recorderChannels,
                     recorderAudioEncoding, bufferElements2Rec * bytesPerElement
                 )
-                lastRecord = ArrayList<Short>()
                 recorder?.let { r ->
                     r.startRecording()
                     isRecording = true
@@ -185,19 +205,24 @@ class MainActivity2 : AppCompatActivity() {
     private fun writeAudioDataToFile() {
         // Write the output audio in byte
 
-        var i = 0
-        recordPath = rootDirectory.absolutePath + "/recording_$i.pcm"
-        while (File(recordPath).exists()) {
-            i += 1
-            recordPath = rootDirectory.absolutePath + "/recording_$i.pcm"
-        }
         val sData = ShortArray(bufferElements2Rec)
 
         var os: FileOutputStream? = null
-        try {
-            os = FileOutputStream(recordPath)
-        } catch (e: FileNotFoundException) {
-            e.printStackTrace()
+        if(mSaveRecord){        // If the save record switch was ON at the beginning of the recording
+            // ----- Find an untaken name for the file -----
+            var i = 0
+            mSaveRecord = saveRecord
+            recordPath = rootDirectory.absolutePath + "/recording_$i.pcm"
+            while (File(recordPath).exists()) {
+                i += 1
+                recordPath = rootDirectory.absolutePath + "/recording_$i.pcm"
+            }
+            // ----- Create the output Stream -----
+            try {
+                os = FileOutputStream(recordPath)
+            } catch (e: FileNotFoundException) {
+                e.printStackTrace()
+            }
         }
 
         while (isRecording) {
@@ -205,39 +230,43 @@ class MainActivity2 : AppCompatActivity() {
 
             recorder?.read(sData, 0, bufferElements2Rec)
             // val iData: IntArray = IntArray(sData.size){ sData[it].toInt() }
-            sData.forEach { lastRecord?.add(it) }
+            sData.forEach { recordedSound?.add(it) }
             if (debug) {
                 println(
                     "Short writing to file${Arrays.toString(sData.sliceArray(1..10))}..." +
                             "${sData.takeLast(10)} -- size : ${sData.size}"
                 )
-                println("Size of ArrayList: ${lastRecord?.size} -- ${lastRecord?.takeLast(10)}")
+                println("Size of ArrayList: ${recordedSound?.size} -- ${recordedSound?.takeLast(10)}")
             }
+            if(mSaveRecord){
+                try {
+                    // // writes the data to file from buffer
+                    // // stores the voice buffer
+                    val bData = short2byte(sData)
+                    os!!.write(bData, 0, bufferElements2Rec * bytesPerElement)
+                } catch (e: IOException) {
+                    e.printStackTrace()
+                }
+            }
+        }
+        if (mSaveRecord){
             try {
-                // // writes the data to file from buffer
-                // // stores the voice buffer
-                val bData = short2byte(sData)
-                os!!.write(bData, 0, bufferElements2Rec * bytesPerElement)
+                os!!.close()
             } catch (e: IOException) {
                 e.printStackTrace()
             }
-
         }
-        try {
-            os!!.close()
-        } catch (e: IOException) {
-            e.printStackTrace()
-        }
-
     }
 
     inline fun <reified T> listToArray(list: List<*>): Array<T> {
+        // Create a list from an array
         return (list as List<T>).toTypedArray()
     }
 
     private fun stopRecording() {
         // stops the recording activity
         if (isRecording) {
+            isRecording = false
             if (null != recorder) {
                 isRecording = false
                 recorder?.let { r ->
@@ -246,11 +275,17 @@ class MainActivity2 : AppCompatActivity() {
                 }
                 recorder = null
                 recordingThread = null
-                Toast.makeText(this, "Recording saved in $recordPath", Toast.LENGTH_SHORT).show()
-                isRecording = false
+                if(mSaveRecord){
+                    Toast.makeText(this, "Recording saved in $recordPath", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this, "Recording stopped", Toast.LENGTH_SHORT).show()
+                }
                 text_view_state.text = "Press Start to record"
-                updateGraphRecorder()
-                computeConvolutedSound()
+
+                // ----- Do the computation with the recordedSound -----
+                updateGraphRecorder()       // Plot it
+                computeConvolutedSound()    // Compute the convolution with the sentSound
+                updateGraphConvolutedSound()        // Plot the convoluted Sound
             }
         } else {
             Toast.makeText(this, "You are not recording right now!", Toast.LENGTH_SHORT).show()
@@ -258,9 +293,9 @@ class MainActivity2 : AppCompatActivity() {
     }
 
     private fun updateGraphRecorder() {
-        lastRecord?.let {
+        // Used to plot the recorded Sound
+        recordedSound?.let {
             // Create the DataPoint
-
             val dataPoints: List<DataPoint> = it.mapIndexed { index, sh ->
                 DataPoint(
                     index.toDouble() / recorderSampleRate.toDouble(),
@@ -268,22 +303,21 @@ class MainActivity2 : AppCompatActivity() {
                 )
             }
             val dataPointsArray: Array<DataPoint> = listToArray<DataPoint>(dataPoints)
-            val series = LineGraphSeries<DataPoint>(
-                dataPointsArray
+            val series = LineGraphSeries<DataPoint>( dataPointsArray )
 
-            )
             graph_waveform_recorded.removeAllSeries()
             graph_waveform_recorded.addSeries(series)
-            graph_waveform_recorded.setTitle("Record")
+            graph_waveform_recorded.setTitle("Recorded")
             graph_waveform_recorded.getViewport().setScalable(true)
         }
     }
 
     private fun computeConvolutedSound() {
+        // Used to create the convoluted sound
         convolutedSound = ArrayList<Double>()
         convolutedSound?.let { itConvSound ->
-            lastRecord?.let { itLastRecord ->
-                sendedSound?.let { itSendedSound ->
+            recordedSound?.let { itLastRecord ->
+                sentSound?.let { itSendedSound ->
                     val startOffset: Int = -floor(itSendedSound.size.toDouble() / 2).toInt()
                     val stopOffset: Int = ceil(itSendedSound.size.toDouble() / 2).toInt()
                     for (i in 0..(itLastRecord.size - 1)) {
@@ -301,88 +335,85 @@ class MainActivity2 : AppCompatActivity() {
                         }
                         itConvSound.add(convValue / itSendedSound.size)
                     }
-                    updateGraphConvolutedSound(itConvSound)
                 }
             }
         }
     }
 
-    private fun updateGraphConvolutedSound(convolutedSound: ArrayList<Double>) {
-        // Create the DataPoint
-
-        var indexMax: Int = 0
-        var max: Double = convolutedSound[0]
-        for (i in 1..(convolutedSound.size - 1)){
-            if (max < convolutedSound[i]){
-                max = convolutedSound[i]
-                indexMax = i
+    private fun updateGraphConvolutedSound() {
+        convolutedSound?.let{itConvolutedSound ->
+            // --- Get the index of the max of the convoluted sound ---
+            var indexMax: Int = 0
+            var max: Double = itConvolutedSound[0]
+            for (i in 1..(itConvolutedSound.size - 1)){
+                if (max < itConvolutedSound[i]){
+                    max = itConvolutedSound[i]
+                    indexMax = i
+                }
             }
+            if (debug){
+                println("In the itConvoluted sound --> Index: $indexMax, Max: $max")
+            }
+            // Create the series to plot the red marker whee there is the maximum
+            val dataPointMarker = arrayOfNulls<DataPoint>(2)
+            dataPointMarker[0] = DataPoint(indexMax.toDouble() / recorderSampleRate, (- max))
+            dataPointMarker[1] = DataPoint(indexMax.toDouble() / recorderSampleRate, max)
+            val seriesMarker = LineGraphSeries<DataPoint>(dataPointMarker)
+            seriesMarker.setColor(Color.RED)
+
+            // Create the series to plot the convoluted sound
+            val dataPoints: List<DataPoint> = itConvolutedSound.mapIndexed { index, sh ->
+                DataPoint( index.toDouble() / recorderSampleRate.toDouble(), sh )
+            }
+            val dataPointsArray: Array<DataPoint> = listToArray<DataPoint>(dataPoints)
+            val series = LineGraphSeries<DataPoint>( dataPointsArray )
+
+            // ----- Plot it !!! -----
+            graph_waveform_convoluted.removeAllSeries()
+            graph_waveform_convoluted.addSeries(series)
+            graph_waveform_convoluted.addSeries(seriesMarker)
+            graph_waveform_convoluted.setTitle("Convoluted")
+            graph_waveform_convoluted.getViewport().setScalable(true)
         }
-        if (debug){
-            println("In the convoluted sound --> Index: $indexMax, Max: $max")
-        }
-
-        val dataPointMarker = kotlin.arrayOfNulls<DataPoint>(2)
-        dataPointMarker[0] = DataPoint(indexMax.toDouble() / recorderSampleRate, (- max.toDouble()))
-        dataPointMarker[1] = DataPoint(indexMax.toDouble() / recorderSampleRate, (max.toDouble()))
-        var seriesMarker = LineGraphSeries<DataPoint>(dataPointMarker)
-        seriesMarker.setColor(Color.RED)
-
-
-        val dataPoints: List<DataPoint> = convolutedSound.mapIndexed { index, sh ->
-            DataPoint(
-                index.toDouble() / recorderSampleRate.toDouble(),
-                sh
-            )
-        }
-        val dataPointsArray: Array<DataPoint> = listToArray<DataPoint>(dataPoints)
-        val series = LineGraphSeries<DataPoint>( dataPointsArray )
-        graph_waveform_convoluted.removeAllSeries()
-        graph_waveform_convoluted.addSeries(series)
-        graph_waveform_convoluted.addSeries(seriesMarker)
-        graph_waveform_convoluted.setTitle("Convoluted")
-        graph_waveform_convoluted.getViewport().setScalable(true)
-
     }
 
-    private fun recreateSendedSound() {
-        val duration = 0.25
-        val f = 440.0
+    private fun recreateSentSound() {
+        val duration = 0.25     // In second
+        val f = 440.0           // In Hertz
         val nbPoints = recorderSampleRate * duration
-        println("nbPoints ${nbPoints.toInt()}")
-        sendedSound = ArrayList<Double>()
-        sendedSound?.let {
+        if (debug){
+            println("Number of point in the sentSound: ${nbPoints.toInt()}")
+        }
+        sentSound = ArrayList<Double>()
+        sentSound?.let {
             for (i in 1..(duration * recorderSampleRate).toInt()) {
-                it.add(sin(2 * PI * f * i / recorderSampleRate))
+                it.add(sin(2 * PI * f * i / recorderSampleRate))        // For now we send a sinus
             }
-
-            println("SendedSound: ${it.size}")
-            updateGraphSended(it)
+            if (debug){
+                println("SendedSound (size: ${it.size}) -->${it.take(10)}...${it.takeLast(10)}")
+            }
+            updateGraphSent()
         }
 
     }
 
-    private fun updateGraphSended(sended: ArrayList<Double>) {
-        // Create the DataPoint
+    private fun updateGraphSent() {
+        sentSound?.let{itSentSound ->
+            val dataPoints: List<DataPoint> = itSentSound?.mapIndexed { index, sh ->
+                DataPoint( index.toDouble() / recorderSampleRate.toDouble(), sh )
+            }
+            val dataPointsArray: Array<DataPoint> = listToArray<DataPoint>(dataPoints)
+            val series = LineGraphSeries<DataPoint>( dataPointsArray )
 
+            // ----- PLot it -----
+            graph_waveform_sent.removeAllSeries()
+            graph_waveform_sent.addSeries(series)
+            graph_waveform_sent.setTitle("Sended")
+            graph_waveform_sent.getViewport().setScalable(true)
+            graph_waveform_sent.getGridLabelRenderer().setVerticalLabelsVisible(false)
+            graph_waveform_sent.getGridLabelRenderer().setHorizontalLabelsVisible(false)
 
-        val dataPoints: List<DataPoint> = sended.mapIndexed { index, sh ->
-            DataPoint(
-                index.toDouble() / recorderSampleRate.toDouble(),
-                sh
-            )
         }
-        val dataPointsArray: Array<DataPoint> = listToArray<DataPoint>(dataPoints)
-        val series = LineGraphSeries<DataPoint>(
-            dataPointsArray
-
-        )
-        graph_waveform_sended.removeAllSeries()
-        graph_waveform_sended.addSeries(series)
-        graph_waveform_sended.setTitle("Sended")
-        graph_waveform_sended.getViewport().setScalable(true)
-        graph_waveform_sended.getGridLabelRenderer().setVerticalLabelsVisible(false)
-        graph_waveform_sended.getGridLabelRenderer().setHorizontalLabelsVisible(false)
     }
 
 }
