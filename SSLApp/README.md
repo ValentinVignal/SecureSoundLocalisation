@@ -4,8 +4,8 @@
 This android project (coded in *Kotlin*) is used to control the phone.
 
 
+![Version2_MainActivity|1280x720,40%](Images/Version2/Version2_MainActivity.png)
 
-![Version2_MainActivity](Images/Version2/Version2_MainActivity.png)
 
 # How to use it
 
