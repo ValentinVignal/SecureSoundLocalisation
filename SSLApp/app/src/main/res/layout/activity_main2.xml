@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    tools:context=".MainActivity2"
+    android:id="@+id/global_layout"
+    >
+
+    <Switch
+        android:id="@+id/switch_debug"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignEnd="@+id/textview_sound_recorder_heading"
+        android:layout_alignParentTop="true"
+        android:layout_marginTop="6dp"
+        android:layout_marginEnd="-3dp"
+        android:text="Debug"
+        android:textColor="#E91E63"
+        android:textOff="OFF"
+        android:textOn="ON" />
+
+    <TextView
+        android:id="@+id/textview_sound_recorder_heading"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="50dp"
+        android:text="Secure Sound Localisation\n2"
+        android:textAlignment="center"
+        android:layout_centerHorizontal="true"
+        android:textColor="#000000"
+        android:textSize="20dp"
+        android:textStyle="bold" />
+
+    <com.jjoe64.graphview.GraphView
+        android:id="@+id/graph_waveform"
+        android:layout_width="match_parent"
+        android:layout_height="487dp"
+        android:background="#FFF"
+        android:layout_above="@+id/text_view_state"
+        android:layout_below="@+id/textview_sound_recorder_heading"
+        android:layout_marginTop="10dp"
+        android:layout_marginBottom="-14dp" />
+
+    <TextView
+        android:id="@+id/text_view_state"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/button_start_recording"
+        android:layout_marginTop="32dp"
+        android:layout_marginBottom="15dp"
+        android:layout_centerHorizontal="true"
+        android:text="Press Start to record"
+        android:textColor="#117"
+        android:textSize="15dp"
+        android:textStyle="bold" />
+
+    <Button
+        android:id="@+id/button_start_recording"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_centerVertical="true"
+        android:layout_marginLeft="32dp"
+        android:layout_marginBottom="32dp"
+        android:text="Start"
+        android:textSize="12dp" />
+
+    <Button
+        android:id="@+id/button_stop_recording"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Stop"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentRight="true"
+        android:layout_marginBottom="32dp"
+        android:textSize="12dp"
+        android:layout_marginRight="32dp"/>
+</RelativeLayout>
