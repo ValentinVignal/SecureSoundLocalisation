@@ -15,10 +15,14 @@ import kotlinx.android.synthetic.main.activity_main2.*
 import java.io.File
 import java.io.IOException
 import android.media.AudioRecord
+import android.view.View
+import com.jjoe64.graphview.series.DataPoint
+import com.jjoe64.graphview.series.LineGraphSeries
 import java.io.FileNotFoundException
 import java.io.FileOutputStream
 import java.util.*
 import kotlin.collections.ArrayList
+
 
 class MainActivity2 : AppCompatActivity() {
 
@@ -96,13 +100,24 @@ class MainActivity2 : AppCompatActivity() {
             stopRecording()
         }
 
+        if (debug) {
+            switch_debug.isChecked = true
+            global_layout.setBackgroundColor(Color.rgb(240, 240, 240))
+            textview_sound_recorder_heading.setTextColor(Color.rgb(160, 52, 52))
+        } else {
+            switch_debug.isChecked = false
+            global_layout.setBackgroundColor(Color.WHITE)
+            textview_sound_recorder_heading.setTextColor(Color.BLACK)
+        }
         switch_debug.setOnCheckedChangeListener{ buttonView, isChecked ->
             if (isChecked){
                 debug = true
-                global_layout.setBackgroundColor(Color.GRAY)
+                global_layout.setBackgroundColor(Color.rgb(240, 240, 240))
+                textview_sound_recorder_heading.setTextColor(Color.rgb(160, 52, 52))
             } else {
                 debug = false
                 global_layout.setBackgroundColor(Color.WHITE)
+                textview_sound_recorder_heading.setTextColor(Color.BLACK)
             }
 
         }
@@ -207,6 +222,9 @@ class MainActivity2 : AppCompatActivity() {
 
     }
 
+    inline fun <reified T> toArray(list: List<*>): Array<T> {
+        return (list as List<T>).toTypedArray()
+    }
 
     private fun stopRecording() {
         // stops the recording activity
@@ -222,6 +240,32 @@ class MainActivity2 : AppCompatActivity() {
                 Toast.makeText(this, "Recording saved in $recordPath", Toast.LENGTH_SHORT).show()
                 isRecording = false
                 text_view_state.text = "Press Start to record"
+                lastRecord?.let{
+                    // Create the DataPoint
+
+                    val  dataPoints: List<DataPoint> = it.mapIndexed { index, sh ->
+                        DataPoint(
+                            index.toDouble() / recorderSampleRate.toDouble(),
+                            sh.toDouble()
+                        )
+                    }
+                    val dataPointsArray: Array<DataPoint> = toArray<DataPoint>(dataPoints)
+                    val series = LineGraphSeries<DataPoint>(
+                        /*
+                        arrayOf<DataPoint>(
+                            DataPoint(0.0, 1.0),
+                            DataPoint(1.0, 5.0),
+                            DataPoint(2.0, 3.0),
+                            DataPoint(3.0, 2.0),
+                            DataPoint(4.0, 6.0)
+                        )
+
+                         */
+                        dataPointsArray
+
+                    )
+                    graph_waveform.addSeries(series)
+                }
             }
         } else {
             Toast.makeText(this, "You are not recording right now!", Toast.LENGTH_SHORT).show()
