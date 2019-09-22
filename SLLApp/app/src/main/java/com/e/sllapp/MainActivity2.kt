@@ -15,7 +15,6 @@ import kotlinx.android.synthetic.main.activity_main2.*
 import java.io.File
 import java.io.IOException
 import android.media.AudioRecord
-import android.view.View
 import com.jjoe64.graphview.series.DataPoint
 import com.jjoe64.graphview.series.LineGraphSeries
 import java.io.FileNotFoundException
@@ -222,7 +221,7 @@ class MainActivity2 : AppCompatActivity() {
 
     }
 
-    inline fun <reified T> toArray(list: List<*>): Array<T> {
+    inline fun <reified T> listToArray(list: List<*>): Array<T> {
         return (list as List<T>).toTypedArray()
     }
 
@@ -240,16 +239,16 @@ class MainActivity2 : AppCompatActivity() {
                 Toast.makeText(this, "Recording saved in $recordPath", Toast.LENGTH_SHORT).show()
                 isRecording = false
                 text_view_state.text = "Press Start to record"
-                lastRecord?.let{
+                lastRecord?.let {
                     // Create the DataPoint
 
-                    val  dataPoints: List<DataPoint> = it.mapIndexed { index, sh ->
+                    val dataPoints: List<DataPoint> = it.mapIndexed { index, sh ->
                         DataPoint(
                             index.toDouble() / recorderSampleRate.toDouble(),
                             sh.toDouble()
                         )
                     }
-                    val dataPointsArray: Array<DataPoint> = toArray<DataPoint>(dataPoints)
+                    val dataPointsArray: Array<DataPoint> = listToArray<DataPoint>(dataPoints)
                     val series = LineGraphSeries<DataPoint>(
                         /*
                         arrayOf<DataPoint>(
@@ -265,6 +264,8 @@ class MainActivity2 : AppCompatActivity() {
 
                     )
                     graph_waveform.addSeries(series)
+                    graph_waveform.setTitle("Record")
+                    graph_waveform.getViewport().setScalable(true)
                 }
             }
         } else {
