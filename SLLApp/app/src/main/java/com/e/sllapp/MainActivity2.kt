@@ -1,12 +1,10 @@
 package com.e.sllapp
 
 import android.Manifest
-import android.annotation.SuppressLint
-import android.annotation.TargetApi
 import android.content.pm.PackageManager
+import android.graphics.Color
 import android.media.AudioFormat
 import android.media.MediaRecorder
-import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.widget.Toast
@@ -17,33 +15,40 @@ import kotlinx.android.synthetic.main.activity_main2.*
 import java.io.File
 import java.io.IOException
 import android.media.AudioRecord
-import com.e.sllapp.R
 import java.io.FileNotFoundException
 import java.io.FileOutputStream
+import java.util.*
+import kotlin.collections.ArrayList
 
 class MainActivity2 : AppCompatActivity() {
 
-    private var mediaRecorder: MediaRecorder? = null
+    // ---------- Debug options ----------
+    private var debug: Boolean = true
+
+    // ---------- State of the recorder ----------
     private var isRecording: Boolean = false
     private var isInPause: Boolean = false
     private var recordPath: String? = null
 
+    // ---------- Variables for AudioRecord ----------
     private val recorderSampleRate: Int = 8000  // For emulator, put 44100 for real phone
     private val recorderChannels = AudioFormat.CHANNEL_IN_MONO
     private val recorderAudioEncoding = AudioFormat.ENCODING_PCM_16BIT
     private var recorder: AudioRecord? = null
     private var recordingThread: Thread? = null
-
-    private val BufferElements2Rec: Int =
+    private var bufferElements2Rec: Int =
         1024 // want to play 2048 (2K) since 2 bytes we use only 1024
-    private var BytesPerElement: Int = 2 // 2 bytes in 16bit format
+    private var bytesPerElement: Int = 2 // 2 bytes in 16bit format
     private var bufferSize: Int = AudioRecord.getMinBufferSize(
         recorderSampleRate,
         recorderChannels, recorderAudioEncoding
     )
 
+    // ---------- Handle the recording datas ----------
     private val rootDirectory: File =
         File(Environment.getExternalStorageDirectory().absolutePath + "/SSL")
+    private var lastRecord: ArrayList<Short>? = null
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -90,6 +95,17 @@ class MainActivity2 : AppCompatActivity() {
         button_stop_recording.setOnClickListener {
             stopRecording()
         }
+
+        switch_debug.setOnCheckedChangeListener{ buttonView, isChecked ->
+            if (isChecked){
+                debug = true
+                global_layout.setBackgroundColor(Color.GRAY)
+            } else {
+                debug = false
+                global_layout.setBackgroundColor(Color.WHITE)
+            }
+
+        }
     }
 
 
@@ -113,13 +129,14 @@ class MainActivity2 : AppCompatActivity() {
     private fun startRecording() {
         if (!isRecording) {
             try {
+                lastRecord = ArrayList<Short>()
                 isRecording = true
                 Toast.makeText(this, "Recording started!", Toast.LENGTH_SHORT).show()
                 text_view_state.text = "Recording..."
                 recorder = AudioRecord(
                     MediaRecorder.AudioSource.MIC,
                     recorderSampleRate, recorderChannels,
-                    recorderAudioEncoding, BufferElements2Rec * BytesPerElement
+                    recorderAudioEncoding, bufferElements2Rec * bytesPerElement
                 )
 
                 recorder?.let { r ->
@@ -150,7 +167,7 @@ class MainActivity2 : AppCompatActivity() {
             i += 1
             recordPath = rootDirectory.absolutePath + "/recording_$i.pcm"
         }
-        val sData = ShortArray(BufferElements2Rec)
+        val sData = ShortArray(bufferElements2Rec)
 
         var os: FileOutputStream? = null
         try {
@@ -162,13 +179,21 @@ class MainActivity2 : AppCompatActivity() {
         while (isRecording) {
             // gets the voice output from microphone to byte format
 
-            recorder?.read(sData, 0, BufferElements2Rec)
-            println("Short wirting to file$sData")
+            recorder?.read(sData, 0, bufferElements2Rec)
+            // val iData: IntArray = IntArray(sData.size){ sData[it].toInt() }
+            sData.forEach { lastRecord?.add(it) }
+            if (debug) {
+                println(
+                    "Short writing to file${Arrays.toString(sData.sliceArray(1..10))}..." +
+                            "${sData.takeLast(10)} -- size : ${sData.size}"
+                )
+                println("Size of ArrayList: ${lastRecord?.size} -- ${lastRecord?.takeLast(10)}")
+            }
             try {
                 // // writes the data to file from buffer
                 // // stores the voice buffer
                 val bData = short2byte(sData)
-                os!!.write(bData, 0, BufferElements2Rec * BytesPerElement)
+                os!!.write(bData, 0, bufferElements2Rec * bytesPerElement)
             } catch (e: IOException) {
                 e.printStackTrace()
             }

@@ -3,7 +3,23 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent" android:layout_height="match_parent"
-    tools:context=".MainActivity2">
+    tools:context=".MainActivity2"
+    android:id="@+id/global_layout"
+    >
+
+    <Switch
+        android:id="@+id/switch_debug"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignEnd="@+id/textview_sound_recorder_heading"
+        android:layout_alignParentTop="true"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="2dp"
+        android:checked="true"
+        android:textColor="#E91E63"
+        android:text="Debug"
+        android:textOff="OFF"
+        android:textOn="ON"/>
 
     <TextView
         android:id="@+id/textview_sound_recorder_heading"
@@ -15,7 +31,7 @@
         android:textStyle="bold"
         android:textAlignment="center"
         android:textColor="#000"
-        android:layout_marginTop="32dp"
+        android:layout_marginTop="50dp"
         />
 
     <TextView
