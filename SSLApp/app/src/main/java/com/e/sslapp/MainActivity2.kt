@@ -12,18 +12,20 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import kotlinx.android.synthetic.main.activity_main2.*
-import java.io.File
-import java.io.IOException
 import android.media.AudioRecord
 import com.jjoe64.graphview.series.DataPoint
 import com.jjoe64.graphview.series.LineGraphSeries
-import java.io.FileNotFoundException
-import java.io.FileOutputStream
 import java.util.*
 import kotlin.collections.ArrayList
+import java.io.*
+import java.lang.Math.*
 
 
 class MainActivity2 : AppCompatActivity() {
+
+    // ------------------------------------------------------------
+    //                           Attributs
+    // ------------------------------------------------------------
 
     // ---------- Debug options ----------
     private var debug: Boolean = true
@@ -51,7 +53,13 @@ class MainActivity2 : AppCompatActivity() {
     private val rootDirectory: File =
         File(Environment.getExternalStorageDirectory().absolutePath + "/SSL")
     private var lastRecord: ArrayList<Short>? = null
+    private var sendedSound: ArrayList<Double>? = null
+    private var convolutedSound: ArrayList<Double>? = null
 
+
+    // ------------------------------------------------------------
+    //                           Methods
+    // ------------------------------------------------------------
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -74,6 +82,8 @@ class MainActivity2 : AppCompatActivity() {
         if (!rootDirectory.exists()) {
             rootDirectory.mkdirs()
         }
+
+        recreateSendedSound()
 
         button_start_recording.setOnClickListener {
             if (ContextCompat.checkSelfPermission(
@@ -108,8 +118,8 @@ class MainActivity2 : AppCompatActivity() {
             global_layout.setBackgroundColor(Color.WHITE)
             textview_sound_recorder_heading.setTextColor(Color.BLACK)
         }
-        switch_debug.setOnCheckedChangeListener{ buttonView, isChecked ->
-            if (isChecked){
+        switch_debug.setOnCheckedChangeListener { buttonView, isChecked ->
+            if (isChecked) {
                 debug = true
                 global_layout.setBackgroundColor(Color.rgb(240, 240, 240))
                 textview_sound_recorder_heading.setTextColor(Color.rgb(160, 52, 52))
@@ -152,7 +162,7 @@ class MainActivity2 : AppCompatActivity() {
                     recorderSampleRate, recorderChannels,
                     recorderAudioEncoding, bufferElements2Rec * bytesPerElement
                 )
-
+                lastRecord = ArrayList<Short>()
                 recorder?.let { r ->
                     r.startRecording()
                     isRecording = true
@@ -239,38 +249,141 @@ class MainActivity2 : AppCompatActivity() {
                 Toast.makeText(this, "Recording saved in $recordPath", Toast.LENGTH_SHORT).show()
                 isRecording = false
                 text_view_state.text = "Press Start to record"
-                lastRecord?.let {
-                    // Create the DataPoint
-
-                    val dataPoints: List<DataPoint> = it.mapIndexed { index, sh ->
-                        DataPoint(
-                            index.toDouble() / recorderSampleRate.toDouble(),
-                            sh.toDouble()
-                        )
-                    }
-                    val dataPointsArray: Array<DataPoint> = listToArray<DataPoint>(dataPoints)
-                    val series = LineGraphSeries<DataPoint>(
-                        /*
-                        arrayOf<DataPoint>(
-                            DataPoint(0.0, 1.0),
-                            DataPoint(1.0, 5.0),
-                            DataPoint(2.0, 3.0),
-                            DataPoint(3.0, 2.0),
-                            DataPoint(4.0, 6.0)
-                        )
-
-                         */
-                        dataPointsArray
-
-                    )
-                    graph_waveform.addSeries(series)
-                    graph_waveform.setTitle("Record")
-                    graph_waveform.getViewport().setScalable(true)
-                }
+                updateGraphRecorder()
+                computeConvolutedSound()
             }
         } else {
             Toast.makeText(this, "You are not recording right now!", Toast.LENGTH_SHORT).show()
         }
     }
+
+    private fun updateGraphRecorder() {
+        lastRecord?.let {
+            // Create the DataPoint
+
+            val dataPoints: List<DataPoint> = it.mapIndexed { index, sh ->
+                DataPoint(
+                    index.toDouble() / recorderSampleRate.toDouble(),
+                    sh.toDouble()
+                )
+            }
+            val dataPointsArray: Array<DataPoint> = listToArray<DataPoint>(dataPoints)
+            val series = LineGraphSeries<DataPoint>(
+                dataPointsArray
+
+            )
+            graph_waveform_recorded.removeAllSeries()
+            graph_waveform_recorded.addSeries(series)
+            graph_waveform_recorded.setTitle("Record")
+            graph_waveform_recorded.getViewport().setScalable(true)
+        }
+    }
+
+    private fun computeConvolutedSound() {
+        convolutedSound = ArrayList<Double>()
+        convolutedSound?.let { itConvSound ->
+            lastRecord?.let { itLastRecord ->
+                sendedSound?.let { itSendedSound ->
+                    val startOffset: Int = -floor(itSendedSound.size.toDouble() / 2).toInt()
+                    val stopOffset: Int = ceil(itSendedSound.size.toDouble() / 2).toInt()
+                    for (i in 0..(itLastRecord.size - 1)) {
+                        var convValue: Double = 0.0
+                        for (j in 0..(itSendedSound.size - 1)) {
+                            if (j + i + startOffset < 0) {
+                                continue
+                            } else {
+                                if (j + i + startOffset >= itLastRecord.size) {
+                                    continue
+                                } else {
+                                    convValue += itLastRecord[i + j + startOffset] * itSendedSound[j]
+                                }
+                            }
+                        }
+                        itConvSound.add(convValue / itSendedSound.size)
+                    }
+                    updateGraphConvolutedSound(itConvSound)
+                }
+            }
+        }
+    }
+
+    private fun updateGraphConvolutedSound(convolutedSound: ArrayList<Double>) {
+        // Create the DataPoint
+
+        var indexMax: Int = 0
+        var max: Double = convolutedSound[0]
+        for (i in 1..(convolutedSound.size - 1)){
+            if (max < convolutedSound[i]){
+                max = convolutedSound[i]
+                indexMax = i
+            }
+        }
+        if (debug){
+            println("In the convoluted sound --> Index: $indexMax, Max: $max")
+        }
+
+        val dataPointMarker = kotlin.arrayOfNulls<DataPoint>(2)
+        dataPointMarker[0] = DataPoint(indexMax.toDouble() / recorderSampleRate, (- max.toDouble()))
+        dataPointMarker[1] = DataPoint(indexMax.toDouble() / recorderSampleRate, (max.toDouble()))
+        var seriesMarker = LineGraphSeries<DataPoint>(dataPointMarker)
+        seriesMarker.setColor(Color.RED)
+
+
+        val dataPoints: List<DataPoint> = convolutedSound.mapIndexed { index, sh ->
+            DataPoint(
+                index.toDouble() / recorderSampleRate.toDouble(),
+                sh
+            )
+        }
+        val dataPointsArray: Array<DataPoint> = listToArray<DataPoint>(dataPoints)
+        val series = LineGraphSeries<DataPoint>( dataPointsArray )
+        graph_waveform_convoluted.removeAllSeries()
+        graph_waveform_convoluted.addSeries(series)
+        graph_waveform_convoluted.addSeries(seriesMarker)
+        graph_waveform_convoluted.setTitle("Convoluted")
+        graph_waveform_convoluted.getViewport().setScalable(true)
+
+    }
+
+    private fun recreateSendedSound() {
+        val duration = 0.25
+        val f = 440.0
+        val nbPoints = recorderSampleRate * duration
+        println("nbPoints ${nbPoints.toInt()}")
+        sendedSound = ArrayList<Double>()
+        sendedSound?.let {
+            for (i in 1..(duration * recorderSampleRate).toInt()) {
+                it.add(sin(2 * PI * f * i / recorderSampleRate))
+            }
+
+            println("SendedSound: ${it.size}")
+            updateGraphSended(it)
+        }
+
+    }
+
+    private fun updateGraphSended(sended: ArrayList<Double>) {
+        // Create the DataPoint
+
+
+        val dataPoints: List<DataPoint> = sended.mapIndexed { index, sh ->
+            DataPoint(
+                index.toDouble() / recorderSampleRate.toDouble(),
+                sh
+            )
+        }
+        val dataPointsArray: Array<DataPoint> = listToArray<DataPoint>(dataPoints)
+        val series = LineGraphSeries<DataPoint>(
+            dataPointsArray
+
+        )
+        graph_waveform_sended.removeAllSeries()
+        graph_waveform_sended.addSeries(series)
+        graph_waveform_sended.setTitle("Sended")
+        graph_waveform_sended.getViewport().setScalable(true)
+        graph_waveform_sended.getGridLabelRenderer().setVerticalLabelsVisible(false)
+        graph_waveform_sended.getGridLabelRenderer().setHorizontalLabelsVisible(false)
+    }
+
 }
 
