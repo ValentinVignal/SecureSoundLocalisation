@@ -35,7 +35,9 @@ class MainActivity3 : AppCompatActivity() {
     private var toolbar: Toolbar? = null
 
     // ---------- Debug options ----------
-    private var debug: Boolean = true       // Use to debug (and for example print in the terminal)
+    companion object {
+       var debug:Boolean = false // Use to debug (and for example print in the terminal)
+    }
     private var saveRecord: Boolean = false
     private var mSaveRecord: Boolean = false // Save the state of the save_record switch at the end of the recording
 
@@ -74,6 +76,10 @@ class MainActivity3 : AppCompatActivity() {
         // --------------------
         // Call at the creation
         // --------------------
+
+        // -------------------- Set what needs to be set while debug --------------------
+        changeTheme(debug, onCreate=true)
+
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main3)
 
@@ -111,15 +117,6 @@ class MainActivity3 : AppCompatActivity() {
         recreateSentSound()
         switch_save_record.isChecked = saveRecord
 
-        // -------------------- Set what needs to be set while debug --------------------
-        if (debug) {
-            switch_debug.isChecked = true
-            global_layout.setBackgroundColor(Color.rgb(240, 240, 240))
-        } else {
-            switch_debug.isChecked = false
-            global_layout.setBackgroundColor(Color.WHITE)
-        }
-
         // -------------------- Call when Start button is pressed --------------------
         button_start_recording.setOnClickListener {
             // If the we didn't allow
@@ -148,16 +145,10 @@ class MainActivity3 : AppCompatActivity() {
             stopRecording()
         }
 
-
         // -------------------- Call when Debug Switch changes  --------------------
+        switch_debug.isChecked = debug
         switch_debug.setOnCheckedChangeListener { buttonView, isChecked ->
-            if (isChecked) {
-                debug = true
-                global_layout.setBackgroundColor(Color.rgb(240, 240, 240))
-            } else {
-                debug = false
-                global_layout.setBackgroundColor(Color.WHITE)
-            }
+            changeTheme(isChecked)
         }
 
         // -------------------- Call when Save Record Switch changes  --------------------
@@ -165,6 +156,25 @@ class MainActivity3 : AppCompatActivity() {
             saveRecord = isChecked
         }
     }
+
+    fun changeTheme(onDebug:Boolean, onCreate:Boolean=false){
+        if (onDebug) {
+            debug = true
+            //global_layout.setBackgroundColor(Color.rgb(240, 240, 240))
+            setTheme(R.style.DarkTheme)
+
+        } else {
+            debug = false
+            //global_layout.setBackgroundColor(Color.WHITE)
+            setTheme(R.style.LightTheme)
+        }
+        if(!onCreate){      // To avoid infinite loops
+            val intent = Intent(this, MainActivity3::class.java)
+            //intent.putExtra("debug", debug)
+            startActivity(intent)
+        }
+    }
+
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         val inflater = menuInflater

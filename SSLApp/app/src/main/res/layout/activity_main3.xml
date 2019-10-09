@@ -58,14 +58,15 @@
             android:layout_width="match_parent"
             android:layout_height="0px"
             android:layout_weight="1"
-            android:background="#FFF" />
+            android:background="?colorBackground"/>
 
         <com.jjoe64.graphview.GraphView
             android:id="@+id/graph_waveform_convoluted"
             android:layout_width="match_parent"
             android:layout_height="0px"
             android:layout_weight="2"
-            android:background="#FFF" />
+            android:background="?colorBackground"
+            />
 
         <com.jjoe64.graphview.GraphView
             android:id="@+id/graph_waveform_recorded"
@@ -73,7 +74,7 @@
             android:layout_height="0px"
             android:layout_weight="2"
             android:layout_centerVertical="true"
-            android:background="#FFF" />
+            android:background="?colorBackground" />
 
     </LinearLayout>
 
@@ -86,7 +87,7 @@
         android:layout_centerHorizontal="true"
         android:layout_above="@id/container_button"
         android:text="Press Start to record"
-        android:textColor="#117"
+        android:textColor="@color/colorPrimary"
         android:textSize="15sp"
         android:textStyle="bold" />
 
