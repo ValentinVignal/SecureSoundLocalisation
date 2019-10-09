@@ -1,6 +1,7 @@
 package com.e.sslapp
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.media.AudioFormat
@@ -13,6 +14,9 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import kotlinx.android.synthetic.main.activity_main3.*
 import android.media.AudioRecord
+import android.view.Menu
+import android.view.MenuItem
+import androidx.appcompat.widget.Toolbar
 import com.jjoe64.graphview.series.DataPoint
 import com.jjoe64.graphview.series.LineGraphSeries
 import java.util.*
@@ -26,6 +30,9 @@ class MainActivity3 : AppCompatActivity() {
     // ------------------------------------------------------------
     //                           Attributs
     // ------------------------------------------------------------
+
+    // ---------- Toolbar ----------
+    private var toolbar: Toolbar? = null
 
     // ---------- Debug options ----------
     private var debug: Boolean = true       // Use to debug (and for example print in the terminal)
@@ -70,6 +77,15 @@ class MainActivity3 : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main3)
 
+        // ---------- Handle Toolbar ----------
+        toolbar = findViewById(R.id.activity_toolbar)
+        setSupportActionBar(toolbar)
+        val actionBar = supportActionBar
+        actionBar?.title = "SSL"
+        actionBar?.subtitle = "SecureSoundLocalisation - v3.0"
+        actionBar?.elevation = 4.0F
+
+
         // ---------- Check the permission ----------
         if (ContextCompat.checkSelfPermission(
                 this,
@@ -99,11 +115,9 @@ class MainActivity3 : AppCompatActivity() {
         if (debug) {
             switch_debug.isChecked = true
             global_layout.setBackgroundColor(Color.rgb(240, 240, 240))
-            textview_sound_recorder_heading.setTextColor(Color.rgb(160, 52, 52))
         } else {
             switch_debug.isChecked = false
             global_layout.setBackgroundColor(Color.WHITE)
-            textview_sound_recorder_heading.setTextColor(Color.BLACK)
         }
 
         // -------------------- Call when Start button is pressed --------------------
@@ -140,11 +154,9 @@ class MainActivity3 : AppCompatActivity() {
             if (isChecked) {
                 debug = true
                 global_layout.setBackgroundColor(Color.rgb(240, 240, 240))
-                textview_sound_recorder_heading.setTextColor(Color.rgb(160, 52, 52))
             } else {
                 debug = false
                 global_layout.setBackgroundColor(Color.WHITE)
-                textview_sound_recorder_heading.setTextColor(Color.BLACK)
             }
         }
 
@@ -154,6 +166,40 @@ class MainActivity3 : AppCompatActivity() {
         }
     }
 
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        val inflater = menuInflater
+        inflater.inflate(R.menu.menu_toolbar, menu)
+        return super.onCreateOptionsMenu(menu)
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        // Handle presses on the action bar menu items
+        when (item.itemId) {
+            R.id.version_1_0 -> {
+                if (debug){
+                    println("v1 pressed")
+                }
+                val intent = Intent(this, MainActivity::class.java)
+                startActivity(intent)
+                return true
+            }
+            R.id.version_2_0 -> {
+                if(debug){
+                    println("v2 pressed")
+                }
+                val intent = Intent(this, MainActivity2::class.java)
+                startActivity(intent)
+                return true
+            }
+            R.id.version_3_0 -> {
+                if(debug){
+                    println("v3 pressed")
+                }
+                return true
+            }
+        }
+        return super.onOptionsItemSelected(item)
+    }
 
     // ---------- Use to change Short to Byte ----------
     infix fun Short.and(that: Int): Int = this.toInt().and(that)

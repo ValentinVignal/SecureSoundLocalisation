@@ -7,11 +7,16 @@
     android:id="@+id/global_layout"
     >
 
+    <include
+        android:id="@+id/activity_toolbar"
+        layout="@layout/my_toolbar" />
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:id="@+id/container_switch">
+        android:id="@+id/container_switch"
+        android:layout_below="@+id/activity_toolbar">
 
         <Switch
             android:id="@+id/switch_save_record"
@@ -38,26 +43,10 @@
             android:text="Debug"
             android:textColor="#E91E63"
             android:textOn="ON" />
-
     </LinearLayout>
 
-
-
-    <TextView
-        android:id="@+id/textview_sound_recorder_heading"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@+id/container_switch"
-        android:layout_centerHorizontal="true"
-        android:layout_marginTop="0dp"
-        android:text="Secure Sound Localisation\n3"
-        android:textAlignment="center"
-        android:textColor="#000000"
-        android:textSize="20sp"
-        android:textStyle="bold" />
-
     <LinearLayout
-        android:layout_below="@+id/textview_sound_recorder_heading"
+        android:layout_below="@+id/container_switch"
         android:layout_above="@id/text_view_state"
         android:layout_width="match_parent"
         android:layout_height="600dp"
