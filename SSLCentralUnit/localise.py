@@ -7,8 +7,8 @@ class Source:
 
 # Global variables
 source_0=Source(0,0)
-source_1=Source(1,0)
-source_2=Source(0,1)
+source_1=Source(5,0)
+source_2=Source(0,5)
 c=300 #speed of the sound (m/s)
 
 def get_coordinates(t0,t1,t2):
@@ -31,19 +31,33 @@ def get_coordinates(t0,t1,t2):
         jac[1,1]=y-source_1.y
         jac[2,1]=y-source_2.y
         return 2*np.asmatrix(jac)
-    jac=get_jac(coord_prev)
-    coord=coord_prev-(jac.T*jac)**(-1)*jac.T*f(coord_prev)
-    while np.linalg.norm(coord-coord_prev)>0.001:
-        coord_prev=coord
+    for i in range(1000):
         jac=get_jac(coord_prev)
         coord=coord_prev-(jac.T*jac)**(-1)*jac.T*f(coord_prev)
+        coord_prev=coord
     return coord[0,0],coord[1,0]
 
 #run some tests to verify
-x,y=0.4,0.9
+x,y=2.5,4
 t0=((x-source_0.x)**2 + (y-source_0.y)**2)**(1/2)/300
 t1=((x-source_1.x)**2 + (y-source_1.y)**2)**(1/2)/300
 t2=((x-source_2.x)**2 + (y-source_2.y)**2)**(1/2)/300
 x_comp,y_comp=get_coordinates(t0,t1,t2)
+d=((x-x_comp)**2+(y-y_comp)**2)**(1/2)
+print("With perfect time measures")
 print(f"theoretical coord: ({x},{y})")
-print(f"computed coord: ({x_comp},{y_comp})")
+print(f"computed coord: ({x_comp:.5f},{y_comp:.5f})")
+print(f"error between positions: {d:.2f} meters")
+
+#Simulating errors on the times measured
+t0+=0.001
+t1+=0.001
+t2+=0.001
+x_comp,y_comp=get_coordinates(t0,t1,t2)
+d=((x-x_comp)**2+(y-y_comp)**2)**(1/2)
+print("\nWith errors of 1ms on the times measured")
+print(f"theoretical coord: ({x},{y})")
+print(f"computed coord: ({x_comp:.5f},{y_comp:.5f})")
+print(f"error between positions: {d:.2f} meters")
+
+
