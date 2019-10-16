@@ -23,6 +23,8 @@ import java.util.*
 import kotlin.collections.ArrayList
 import java.io.*
 import java.lang.Math.*
+import android.util.Log
+import java.util.Calendar
 
 
 class MainActivity3 : AppCompatActivity() {
@@ -157,7 +159,7 @@ class MainActivity3 : AppCompatActivity() {
         }
     }
 
-    fun changeTheme(onDebug:Boolean, onCreate:Boolean=false){
+    private fun changeTheme(onDebug:Boolean, onCreate:Boolean=false){
         if (onDebug) {
             debug = true
             //global_layout.setBackgroundColor(Color.rgb(240, 240, 240))
@@ -228,6 +230,12 @@ class MainActivity3 : AppCompatActivity() {
     }
 
     private fun startRecording() {
+        if(debug){
+            // val currentDate = LocalDateTime.now()
+            // var milliseconds = currentDate.getTime()
+            val currentTime = Calendar.getInstance().timeInMillis
+            Log.d("startRecording","Button start pressed at $currentTime")
+        }
         if (!isRecording) {
             try {
                 recordedSound = ArrayList<Short>()      // Reset the recorded Sound
@@ -260,6 +268,10 @@ class MainActivity3 : AppCompatActivity() {
 
     private fun writeAudioDataToFile() {
         // Write the output audio in byte
+        if(debug){
+            val currentTime = Calendar.getInstance().timeInMillis
+            Log.d("writeAudioDataToFile", "start recording at $currentTime")
+        }
 
         val sData = ShortArray(bufferElements2Rec)
 
@@ -464,7 +476,7 @@ class MainActivity3 : AppCompatActivity() {
             // ----- PLot it -----
             graph_waveform_sent.removeAllSeries()
             graph_waveform_sent.addSeries(series)
-            graph_waveform_sent.setTitle("Sended")
+            graph_waveform_sent.setTitle("Sent")
             graph_waveform_sent.getViewport().setScalable(true)
             graph_waveform_sent.getGridLabelRenderer().setVerticalLabelsVisible(false)
             graph_waveform_sent.getGridLabelRenderer().setHorizontalLabelsVisible(false)
