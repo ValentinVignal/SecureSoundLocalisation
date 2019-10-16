@@ -3,7 +3,7 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent" android:layout_height="match_parent"
-    tools:context=".MainActivity3"
+    tools:context=".v3.Activity3Manual"
     android:id="@+id/global_layout"
     >
 
@@ -33,7 +33,6 @@
             android:layout_weight="1"
             />
 
-
         <Switch
             android:id="@+id/switch_debug"
             android:layout_width="0px"
@@ -46,13 +45,50 @@
     </LinearLayout>
 
     <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/container_form"
         android:layout_below="@+id/container_switch"
+        android:orientation="horizontal"
+        >
+        <TextView
+            android:layout_width="0px"
+            android:layout_height="0px"
+            android:layout_weight="1"
+            />
+        <EditText
+            android:id="@+id/form_offset"
+            android:layout_width="0px"
+            android:layout_height="wrap_content"
+            android:hint="Offset"
+            android:text="1.5"
+            android:layout_weight="1"
+            android:inputType="numberDecimal"
+            />
+        <EditText
+            android:id="@+id/form_duration"
+            android:layout_width="0px"
+            android:layout_height="wrap_content"
+            android:hint="Duration"
+            android:layout_weight="1"
+            android:text="2"
+            android:inputType="numberDecimal"
+            />
+        <TextView
+            android:layout_width="0px"
+            android:layout_height="0px"
+            android:layout_weight="1"
+            />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_below="@+id/container_form"
         android:layout_above="@id/text_view_state"
         android:layout_width="match_parent"
         android:layout_height="600dp"
         android:id="@+id/container_graphview"
         android:orientation="vertical">
-
+        <!--
         <com.jjoe64.graphview.GraphView
             android:id="@+id/graph_waveform_sent"
             android:layout_width="match_parent"
@@ -61,7 +97,9 @@
             android:layout_height="0px"
             android:layout_weight="1"
             android:background="?colorBackground"/>
+        -->
 
+        <!--
         <com.jjoe64.graphview.GraphView
             android:id="@+id/graph_waveform_convoluted"
             android:layout_width="match_parent"
@@ -70,6 +108,7 @@
             android:layout_weight="2"
             android:background="?colorBackground"
             />
+        -->
 
         <com.jjoe64.graphview.GraphView
             android:id="@+id/graph_waveform_recorded"
@@ -105,18 +144,10 @@
 
         <Button
             android:id="@+id/button_start_recording"
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:text="Start"
-            android:textSize="12sp" />
-
-        <Button
-            android:id="@+id/button_stop_recording"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:text="Stop"
             android:textSize="12sp" />
     </LinearLayout>
 

@@ -1,7 +1,6 @@
-package com.e.sslapp
+package com.e.sslapp.v2
 
 import android.Manifest
-import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.media.AudioFormat
@@ -12,34 +11,25 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import kotlinx.android.synthetic.main.activity_main3.*
+import kotlinx.android.synthetic.main.activity2_manual.*
 import android.media.AudioRecord
-import android.view.Menu
-import android.view.MenuItem
-import androidx.appcompat.widget.Toolbar
+import com.e.sslapp.R
 import com.jjoe64.graphview.series.DataPoint
 import com.jjoe64.graphview.series.LineGraphSeries
 import java.util.*
 import kotlin.collections.ArrayList
 import java.io.*
 import java.lang.Math.*
-import android.util.Log
-import java.util.Calendar
 
 
-class MainActivity3 : AppCompatActivity() {
+class Activity2Manual : AppCompatActivity() {
 
     // ------------------------------------------------------------
     //                           Attributs
     // ------------------------------------------------------------
 
-    // ---------- Toolbar ----------
-    private var toolbar: Toolbar? = null
-
     // ---------- Debug options ----------
-    companion object {
-       var debug:Boolean = false // Use to debug (and for example print in the terminal)
-    }
+    private var debug: Boolean = true       // Use to debug (and for example print in the terminal)
     private var saveRecord: Boolean = false
     private var mSaveRecord: Boolean = false // Save the state of the save_record switch at the end of the recording
 
@@ -78,21 +68,8 @@ class MainActivity3 : AppCompatActivity() {
         // --------------------
         // Call at the creation
         // --------------------
-
-        // -------------------- Set what needs to be set while debug --------------------
-        changeTheme(debug, onCreate=true)
-
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main3)
-
-        // ---------- Handle Toolbar ----------
-        toolbar = findViewById(R.id.activity_toolbar)
-        setSupportActionBar(toolbar)
-        val actionBar = supportActionBar
-        actionBar?.title = "SSL"
-        actionBar?.subtitle = "SecureSoundLocalisation - v3.0"
-        actionBar?.elevation = 4.0F
-
+        setContentView(R.layout.activity2_manual)
 
         // ---------- Check the permission ----------
         if (ContextCompat.checkSelfPermission(
@@ -118,6 +95,17 @@ class MainActivity3 : AppCompatActivity() {
         // ----- Compute the supposed sent sound by the Central Unit -----
         recreateSentSound()
         switch_save_record.isChecked = saveRecord
+
+        // -------------------- Set what needs to be set while debug --------------------
+        if (debug) {
+            switch_debug.isChecked = true
+            global_layout.setBackgroundColor(Color.rgb(240, 240, 240))
+            textview_sound_recorder_heading.setTextColor(Color.rgb(160, 52, 52))
+        } else {
+            switch_debug.isChecked = false
+            global_layout.setBackgroundColor(Color.WHITE)
+            textview_sound_recorder_heading.setTextColor(Color.BLACK)
+        }
 
         // -------------------- Call when Start button is pressed --------------------
         button_start_recording.setOnClickListener {
@@ -147,10 +135,18 @@ class MainActivity3 : AppCompatActivity() {
             stopRecording()
         }
 
+
         // -------------------- Call when Debug Switch changes  --------------------
-        switch_debug.isChecked = debug
         switch_debug.setOnCheckedChangeListener { buttonView, isChecked ->
-            changeTheme(isChecked)
+            if (isChecked) {
+                debug = true
+                global_layout.setBackgroundColor(Color.rgb(240, 240, 240))
+                textview_sound_recorder_heading.setTextColor(Color.rgb(160, 52, 52))
+            } else {
+                debug = false
+                global_layout.setBackgroundColor(Color.WHITE)
+                textview_sound_recorder_heading.setTextColor(Color.BLACK)
+            }
         }
 
         // -------------------- Call when Save Record Switch changes  --------------------
@@ -159,59 +155,6 @@ class MainActivity3 : AppCompatActivity() {
         }
     }
 
-    private fun changeTheme(onDebug:Boolean, onCreate:Boolean=false){
-        if (onDebug) {
-            debug = true
-            //global_layout.setBackgroundColor(Color.rgb(240, 240, 240))
-            setTheme(R.style.DarkTheme)
-
-        } else {
-            debug = false
-            //global_layout.setBackgroundColor(Color.WHITE)
-            setTheme(R.style.LightTheme)
-        }
-        if(!onCreate){      // To avoid infinite loops
-            val intent = Intent(this, MainActivity3::class.java)
-            //intent.putExtra("debug", debug)
-            startActivity(intent)
-        }
-    }
-
-
-    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
-        val inflater = menuInflater
-        inflater.inflate(R.menu.menu_toolbar, menu)
-        return super.onCreateOptionsMenu(menu)
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        // Handle presses on the action bar menu items
-        when (item.itemId) {
-            R.id.version_1_0 -> {
-                if (debug){
-                    println("v1 pressed")
-                }
-                val intent = Intent(this, MainActivity::class.java)
-                startActivity(intent)
-                return true
-            }
-            R.id.version_2_0 -> {
-                if(debug){
-                    println("v2 pressed")
-                }
-                val intent = Intent(this, MainActivity2::class.java)
-                startActivity(intent)
-                return true
-            }
-            R.id.version_3_0 -> {
-                if(debug){
-                    println("v3 pressed")
-                }
-                return true
-            }
-        }
-        return super.onOptionsItemSelected(item)
-    }
 
     // ---------- Use to change Short to Byte ----------
     infix fun Short.and(that: Int): Int = this.toInt().and(that)
@@ -230,12 +173,6 @@ class MainActivity3 : AppCompatActivity() {
     }
 
     private fun startRecording() {
-        if(debug){
-            // val currentDate = LocalDateTime.now()
-            // var milliseconds = currentDate.getTime()
-            val currentTime = Calendar.getInstance().timeInMillis
-            Log.d("startRecording","Button start pressed at $currentTime")
-        }
         if (!isRecording) {
             try {
                 recordedSound = ArrayList<Short>()      // Reset the recorded Sound
@@ -268,10 +205,6 @@ class MainActivity3 : AppCompatActivity() {
 
     private fun writeAudioDataToFile() {
         // Write the output audio in byte
-        if(debug){
-            val currentTime = Calendar.getInstance().timeInMillis
-            Log.d("writeAudioDataToFile", "start recording at $currentTime")
-        }
 
         val sData = ShortArray(bufferElements2Rec)
 
@@ -476,7 +409,7 @@ class MainActivity3 : AppCompatActivity() {
             // ----- PLot it -----
             graph_waveform_sent.removeAllSeries()
             graph_waveform_sent.addSeries(series)
-            graph_waveform_sent.setTitle("Sent")
+            graph_waveform_sent.setTitle("Sended")
             graph_waveform_sent.getViewport().setScalable(true)
             graph_waveform_sent.getGridLabelRenderer().setVerticalLabelsVisible(false)
             graph_waveform_sent.getGridLabelRenderer().setHorizontalLabelsVisible(false)

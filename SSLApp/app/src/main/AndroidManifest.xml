@@ -15,7 +15,7 @@
         android:theme="@style/LightTheme"
         >
         <activity
-            android:name="com.e.sslapp.MainActivity3"
+            android:name="com.e.sslapp.v3.Activity3Manual"
             android:label="@string/app_name" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -24,11 +24,15 @@
             </intent-filter>
         </activity>
         <activity
-            android:name="com.e.sslapp.MainActivity2"
+            android:name="com.e.sslapp.v3.Activity3Handler"
             android:label="@string/app_name" >
         </activity>
         <activity
-            android:name="com.e.sslapp.MainActivity"
+            android:name="com.e.sslapp.v2.Activity2Manual"
+            android:label="@string/app_name" >
+        </activity>
+        <activity
+            android:name="com.e.sslapp.v1.Activity1Manual"
             android:label="@string/app_name" >
         </activity>
     </application>

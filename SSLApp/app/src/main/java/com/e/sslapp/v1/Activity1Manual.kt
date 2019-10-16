@@ -1,4 +1,4 @@
-package com.e.sslapp
+package com.e.sslapp.v1
 
 import android.Manifest
 import android.annotation.SuppressLint
@@ -12,12 +12,13 @@ import android.os.Environment
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import kotlinx.android.synthetic.main.activity_main.*
+import com.e.sslapp.R
+import kotlinx.android.synthetic.main.activity1_manual.*
 import java.io.File
 import java.io.IOException
 
 
-class MainActivity : AppCompatActivity() {
+class Activity1Manual : AppCompatActivity() {
 
     private var mediaRecorder: MediaRecorder? = null
     private var isRecording: Boolean = false
@@ -27,7 +28,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        setContentView(R.layout.activity1_manual)
         if (ContextCompat.checkSelfPermission(this,
                 Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED || ContextCompat.checkSelfPermission(this,
                 Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
