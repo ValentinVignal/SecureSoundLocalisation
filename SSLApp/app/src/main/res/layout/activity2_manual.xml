@@ -3,7 +3,7 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent" android:layout_height="match_parent"
-    tools:context=".MainActivity3"
+    tools:context=".v2.Activity2Manual"
     android:id="@+id/global_layout"
     >
 
@@ -50,7 +50,7 @@
         android:layout_below="@+id/container_switch"
         android:layout_centerHorizontal="true"
         android:layout_marginTop="0dp"
-        android:text="Secure Sound Localisation\n3"
+        android:text="Secure Sound Localisation\n2"
         android:textAlignment="center"
         android:textColor="#000000"
         android:textSize="20sp"

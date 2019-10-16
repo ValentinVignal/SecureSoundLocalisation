@@ -12,16 +12,28 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/AppTheme">
+        android:theme="@style/LightTheme"
+        >
         <activity
-            android:name="com.e.sslapp.MainActivity3"
+            android:name="com.e.sslapp.v3.Activity3Manual"
             android:label="@string/app_name" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <action android:name="android.intent.action.VIEW" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+        </activity>
+        <activity
+            android:name="com.e.sslapp.v3.Activity3Handler"
+            android:label="@string/app_name" >
+        </activity>
+        <activity
+            android:name="com.e.sslapp.v2.Activity2Manual"
+            android:label="@string/app_name" >
+        </activity>
+        <activity
+            android:name="com.e.sslapp.v1.Activity1Manual"
+            android:label="@string/app_name" >
         </activity>
     </application>
 
