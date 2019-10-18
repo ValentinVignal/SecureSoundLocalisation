@@ -13,7 +13,7 @@ c=300 #speed of the sound (m/s)
 
 def get_coordinates(t0,t1,t2):
     d0,d1,d2=c*t0,c*t1,c*t2
-    coord_prev=np.matrix('0;0')
+    coord=np.matrix('0;0')
     def f(coord): #compute the matrix of the 3 position function (we want to solve f(x)=0)
         x,y=coord[0,0],coord[1,0]
         f=np.zeros(shape=(3,1))
@@ -32,9 +32,8 @@ def get_coordinates(t0,t1,t2):
         jac[2,1]=y-source_2.y
         return 2*np.asmatrix(jac)
     for i in range(1000):
-        jac=get_jac(coord_prev)
-        coord=coord_prev-(jac.T*jac)**(-1)*jac.T*f(coord_prev)
-        coord_prev=coord
+        jac=get_jac(coord)
+        coord=coord-(jac.T*jac)**(-1)*jac.T*f(coord)
     return coord[0,0],coord[1,0]
 
 #run some tests to verify
