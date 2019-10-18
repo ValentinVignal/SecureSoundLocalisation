@@ -31,9 +31,6 @@ class Point:
 
 
 # Global variables
-source_0 = Point(0, 0)
-source_1 = Point(5, 0)
-source_2 = Point(0, 5)
 c = 340.29  # speed of the sound (m/s)
 
 
@@ -111,17 +108,20 @@ if __name__ == '__main__':
     x, y = 2.5, 4
     point_p = Point(x, y)
 
+    sources = [
+        Point(0, 0),
+        Point(5, 0),
+        Point(0, 5),
+    ]
+
     # Real offsets
-    t0 = (source_0 - point_p).norm2 / c
-    t1 = (source_1 - point_p).norm2 / c
-    t2 = (source_2 - point_p).norm2 / c
-    offsets = [t0, t1, t2]
+    offsets = [(sources[i] - point_p).norm2 / c for i in range(len(sources))]
 
     # latency in reception
     latency = np.random.uniform(0, 1)  # in [0, 1[ second
     offsets_latency = [t + latency for t in offsets]
 
-    x_comp, y_comp = get_coordinates(offsets_latency, [source_0, source_1, source_2])
+    x_comp, y_comp = get_coordinates(offsets_latency, sources)
     d = ((x - x_comp) ** 2 + (y - y_comp) ** 2) ** (1 / 2)
     print("With perfect time measures")
     print(f"theoretical coord: ({x},{y})")
@@ -129,12 +129,12 @@ if __name__ == '__main__':
     print(f"error between positions: {d:.2f} meters")
 
     # Simulating errors on the times measured
-    t0 += 0.001
-    t1 += 0.001
-    t2 += 0.001
-    x_comp, y_comp = get_coordinates([t0, t1, t2], [source_0, source_1, source_2])
-    d = ((x - x_comp) ** 2 + (y - y_comp) ** 2) ** (1 / 2)
-    print("\nWith errors of 1ms on the times measured")
+    e = 0.001       # 1ms
+    errors = [np.random.uniform(-e, e) for t in offsets]
+    offsets_error = [offsets_latency[i] + errors[i] for i in range(len(offsets))]
+    print(f"\nWith errors of 1ms on the times measured : {e} -> {errors}:\n\t{offsets_error} instead of {offsets_latency}")
     print(f"theoretical coord: ({x},{y})")
+    x_comp, y_comp = get_coordinates(offsets_error, sources)
+    d = ((x - x_comp) ** 2 + (y - y_comp) ** 2) ** (1 / 2)
     print(f"computed coord: ({x_comp:.5f},{y_comp:.5f})")
     print(f"error between positions: {d:.2f} meters")
