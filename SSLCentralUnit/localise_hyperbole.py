@@ -29,6 +29,9 @@ class Point:
         return Point(x=self.x,
                      y=self.y)
 
+    def __repr__(self):
+        return self.__str__()
+
 
 # Global variables
 c = 340.29  # speed of the sound (m/s)
@@ -113,6 +116,8 @@ if __name__ == '__main__':
         Point(5, 0),
         Point(0, 5)
     ]
+
+    print(f'--- Test with P: {point_p}, and Sources: {sources} ---\n\n')
 
     # Real offsets
     offsets = [(sources[i] - point_p).norm2 / c for i in range(len(sources))]
