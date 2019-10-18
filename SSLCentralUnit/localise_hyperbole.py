@@ -22,6 +22,10 @@ class Point:
         return Point(x=self.x - other.x,
                      y=self.y - other.y)
 
+    def __truediv__(self,n):
+        return Point(x=self.x/n,
+                     y=self.y/n)
+
     def __str__(self):
         return f'Point({self.x}, {self.y})'
 
@@ -57,8 +61,7 @@ def get_coordinates(offsets, sources):
     nb_sources = len(sources)
     nb_combinaisons = int(nb_sources * (nb_sources - 1) / 2)
     diff_dist = create_diff_dist(offsets)
-    coord = np.asmatrix(np.zeros(shape=(2, 1)))
-    eps = 1e-8
+    coord = np.mean(sources)
 
     def combinaison_number(i, j):
         if i == j:
@@ -70,12 +73,11 @@ def get_coordinates(offsets, sources):
         return res
 
     def f(coord):  # compute the matrix of the 3 position function (we want to solve f(x)=0)
-        p = Point(coord[0, 0], coord[1, 0])
         f = np.zeros(shape=(nb_combinaisons, 1))
         for i in range(0, nb_sources - 1):
             for j in range(i + 1, nb_sources):
                 c_n = combinaison_number(i, j)
-                f[c_n] = ((p - sources[i]).norm2 - (p - sources[j]).norm2) - diff_dist[c_n]
+                f[c_n] = ((coord - sources[i]).norm2 - (coord - sources[j]).norm2) - diff_dist[c_n]
         return np.asmatrix(f)
 
     def get_jac(coord):
@@ -86,22 +88,21 @@ def get_coordinates(offsets, sources):
 
         :return:
         """
-        x, y = coord[0], coord[1]
-        p = Point(x=x, y=y)
         jac = np.zeros(shape=(nb_combinaisons, 2))
         for i in range(0, nb_sources - 1):
             for j in range(i + 1, nb_sources):
                 c_n = combinaison_number(i, j)
-                jac[c_n, 0] = ((x - sources[i].x) / ((p - sources[i]).norm2 + eps)) - (
-                        (x - sources[j].x) / ((p - sources[j]).norm2 + eps))
-                jac[c_n, 1] = ((y - sources[i].y) / ((p - sources[i]).norm2 + eps)) - (
-                        (y - sources[j].y) / ((p - sources[j]).norm2 + eps))
+                jac[c_n, 0] = ((x - sources[i].x) / ((coord - sources[i]).norm2 )) - (
+                        (x - sources[j].x) / ((coord - sources[j]).norm2))
+                jac[c_n, 1] = ((y - sources[i].y) / ((coord - sources[i]).norm2)) - (
+                        (y - sources[j].y) / ((coord - sources[j]).norm2))
         return np.asmatrix(jac)
 
     for i in range(1000):
         jac = get_jac(coord)
-        coord = coord - (jac.T * jac) ** (-1) * jac.T * f(coord)
-    return coord[0, 0], coord[1, 0]
+        dp=(jac.T * jac) ** (-1) * jac.T * f(coord)
+        coord -= Point(dp[0,0],dp[1,0])
+    return coord
 
 
 if __name__ == '__main__':
@@ -126,11 +127,11 @@ if __name__ == '__main__':
     latency = np.random.uniform(0, 1)  # in [0, 1[ second
     offsets_latency = [t + latency for t in offsets]
 
-    x_comp, y_comp = get_coordinates(offsets_latency, sources)
-    d = ((x - x_comp) ** 2 + (y - y_comp) ** 2) ** (1 / 2)
+    coord_comp= get_coordinates(offsets_latency, sources)
+    d =  (coord_comp-point_p).norm2
     print("With perfect time measures")
     print(f"theoretical coord: ({x},{y})")
-    print(f"computed coord: ({x_comp:.5f},{y_comp:.5f})")
+    print(f"computed coord: ({coord_comp.x:.5f},{coord_comp.y:.5f})")
     print(f"error between positions: {d:.2f} meters")
 
     # Simulating errors on the times measured
@@ -139,7 +140,7 @@ if __name__ == '__main__':
     offsets_error = [offsets_latency[i] + errors[i] for i in range(len(offsets))]
     print(f"\nWith errors of 1ms on the times measured : {e} -> {errors}:\n\t{offsets_error} instead of {offsets_latency}")
     print(f"theoretical coord: ({x},{y})")
-    x_comp, y_comp = get_coordinates(offsets_error, sources)
-    d = ((x - x_comp) ** 2 + (y - y_comp) ** 2) ** (1 / 2)
-    print(f"computed coord: ({x_comp:.5f},{y_comp:.5f})")
+    coord_comp= get_coordinates(offsets_error, sources)
+    d =  (coord_comp-point_p).norm2
+    print(f"computed coord: ({coord_comp.x:.5f},{coord_comp.y:.5f})")
     print(f"error between positions: {d:.2f} meters")
