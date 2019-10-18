@@ -111,7 +111,7 @@ if __name__ == '__main__':
     sources = [
         Point(0, 0),
         Point(5, 0),
-        Point(0, 5),
+        Point(0, 5)
     ]
 
     # Real offsets
