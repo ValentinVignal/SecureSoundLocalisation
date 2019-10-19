@@ -26,7 +26,6 @@ import java.lang.Math.*
 import android.util.Log
 import com.e.sslapp.v1.Activity1Manual
 import com.e.sslapp.v2.Activity2Manual
-import com.e.sslapp.v3.Activity3Handler
 import com.e.sslapp.R
 import java.util.Calendar
 
@@ -96,7 +95,6 @@ class Activity3Manual : AppCompatActivity() {
         actionBar?.title = "SSL"
         actionBar?.subtitle = "SecureSoundLocalisation - v3.0"
         actionBar?.elevation = 4.0F
-
 
         // ---------- Check the permission ----------
         if (ContextCompat.checkSelfPermission(

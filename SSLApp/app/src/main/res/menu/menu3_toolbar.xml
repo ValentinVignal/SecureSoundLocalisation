@@ -26,7 +26,8 @@
         <menu>
             <item
                 android:id="@+id/settings_debug"
-                android:title="debug"/>
+                android:title="debug"
+                />
             <item
                 android:id="@+id/settings_save_record"
                 android:title="save record"/>
