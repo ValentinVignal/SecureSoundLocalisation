@@ -45,40 +45,38 @@
     </LinearLayout>
 
     <LinearLayout
+        android:id="@+id/container_form"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:id="@+id/container_form"
         android:layout_below="@+id/container_switch"
-        android:orientation="horizontal"
-        >
+        android:orientation="horizontal">
+
         <TextView
             android:layout_width="0px"
             android:layout_height="0px"
-            android:layout_weight="1"
-            />
+            android:layout_weight="1" />
+
         <EditText
             android:id="@+id/form_offset"
-            android:layout_width="0px"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:hint="Offset"
-            android:text="1.5"
-            android:layout_weight="1"
             android:inputType="numberDecimal"
-            />
+            android:text="1.5" />
+
         <EditText
             android:id="@+id/form_duration"
             android:layout_width="0px"
             android:layout_height="wrap_content"
-            android:hint="Duration"
             android:layout_weight="1"
-            android:text="2"
+            android:hint="Duration"
             android:inputType="numberDecimal"
-            />
+            android:text="2" />
+
         <TextView
             android:layout_width="0px"
             android:layout_height="0px"
-            android:layout_weight="1"
-            />
+            android:layout_weight="1" />
     </LinearLayout>
 
     <LinearLayout

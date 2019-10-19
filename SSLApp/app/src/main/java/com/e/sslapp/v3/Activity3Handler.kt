@@ -423,7 +423,6 @@ class Activity3Handler : AppCompatActivity() {
             }
             // Remove it
             recordedSound = ArrayList(it.subList(nbZerosBeginning, it.size - nbZerosEnding))
-
             // Log it
             if (debug) {
                 Log.d(

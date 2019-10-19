@@ -23,6 +23,16 @@ android {
     }
     sourceSets{
         main.java.srcDirs += 'src/../../../common'
+        main {
+            res.srcDirs = [
+                    'src/main/res/layouts/activities/v1',
+                    'src/main/res/layouts/activities/v2',
+                    'src/main/res/layouts/activities/v3',
+                    'src/main/res/layouts/items',
+                    'src/main/res/layouts',
+                    'src/main/res',
+            ]
+        }
     }
 }
 
