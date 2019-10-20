@@ -24,24 +24,55 @@
             android:layout_height="0px"
             android:layout_weight="1"
             />
-        <EditText
-            android:id="@+id/form_offset"
+        <LinearLayout
             android:layout_width="0px"
             android:layout_height="wrap_content"
-            android:hint="Offset"
-            android:text="1.5"
             android:layout_weight="1"
-            android:inputType="numberDecimal"
-            />
-        <EditText
-            android:id="@+id/form_duration"
+            android:orientation="vertical"
+            >
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="0px"
+                android:layout_weight="1"
+                android:text="Offset"
+                android:layout_marginBottom="-5dp"
+                />
+
+            <EditText
+                android:id="@+id/form_offset"
+                android:layout_width="match_parent"
+                android:layout_height="0px"
+                android:layout_weight="2"
+                android:hint="Offset"
+                android:inputType="numberDecimal"
+                android:text="1.5"
+                android:layout_marginTop="-10dp"
+                />
+        </LinearLayout>
+        <LinearLayout
             android:layout_width="0px"
             android:layout_height="wrap_content"
-            android:hint="Duration"
             android:layout_weight="1"
-            android:text="2"
-            android:inputType="numberDecimal"
-            />
+            android:orientation="vertical"
+            >
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="0px"
+                android:layout_weight="1"
+                android:text="Duration"
+                android:layout_marginBottom="-5dp"
+                />
+            <EditText
+                android:id="@+id/form_duration"
+                android:layout_width="match_parent"
+                android:layout_height="0px"
+                android:hint="Duration"
+                android:layout_weight="2"
+                android:text="2"
+                android:inputType="numberDecimal"
+                android:layout_marginTop="-10dp"
+                />
+        </LinearLayout>
         <TextView
             android:layout_width="0px"
             android:layout_height="0px"
