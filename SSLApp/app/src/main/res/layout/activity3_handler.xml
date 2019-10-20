@@ -11,44 +11,12 @@
         android:id="@+id/activity_toolbar"
         layout="@layout/my_toolbar" />
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:id="@+id/container_switch"
-        android:layout_below="@+id/activity_toolbar">
-
-        <Switch
-            android:id="@+id/switch_save_record"
-            android:layout_width="0px"
-            android:layout_height="wrap_content"
-            android:layout_alignParentStart="true"
-            android:text="Save Record"
-            android:textColor="#E91E63"
-            android:layout_weight="1"
-            android:textOn="ON" />
-        <TextView
-            android:layout_width="0px"
-            android:layout_height="0px"
-            android:layout_weight="1"
-            />
-
-        <Switch
-            android:id="@+id/switch_debug"
-            android:layout_width="0px"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginLeft="0dp"
-            android:text="Debug"
-            android:textColor="#E91E63"
-            android:textOn="ON" />
-    </LinearLayout>
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:id="@+id/container_form"
-        android:layout_below="@+id/container_switch"
+        android:layout_below="@+id/activity_toolbar"
         android:orientation="horizontal"
         >
         <TextView

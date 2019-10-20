@@ -28,10 +28,7 @@ import com.e.sslapp.R
 import java.util.Calendar
 import android.os.Handler
 import kotlinx.android.synthetic.main.activity3_handler.*
-import kotlinx.android.synthetic.main.activity3_manual.button_start_recording
-import kotlinx.android.synthetic.main.activity3_manual.switch_debug
-import kotlinx.android.synthetic.main.activity3_manual.switch_save_record
-import kotlinx.android.synthetic.main.activity3_manual.text_view_state
+
 
 
 class Activity3Handler : AppCompatActivity() {
@@ -97,9 +94,6 @@ class Activity3Handler : AppCompatActivity() {
     private val rootDirectory: File =
         File(Environment.getExternalStorageDirectory().absolutePath + "/SSL")       // Diretory where it is gonna be saved
     private var recordedSound: ArrayList<Short>? = null     // The sound recorder by the phone
-    private var sentSound: ArrayList<Double>? = null      // The sound sent bu the Central Unit
-    private var convolutedSound: ArrayList<Double>? =
-        null      // The convolution between recordedSound and sentSound
 
 
     // ------------------------------------------------------------
@@ -126,7 +120,6 @@ class Activity3Handler : AppCompatActivity() {
         actionBar?.subtitle = "SecureSoundLocalisation - v3.0"
         actionBar?.elevation = 4.0F
 
-
         // ---------- Check the permission ----------
         checkPermission()
 
@@ -135,27 +128,12 @@ class Activity3Handler : AppCompatActivity() {
             rootDirectory.mkdirs()
         }
 
-        // ----- Compute the supposed sent sound by the Central Unit -----
-        //recreateSentSound()
-
         // -------------------- Call when Start button is pressed --------------------
         button_start_recording.setOnClickListener {
             if (checkPermission()) {
                 // We can start the recording
                 startRecording()
             }
-        }
-
-        // -------------------- Call when Debug Switch changes  --------------------
-        switch_debug.isChecked = debug
-        switch_debug.setOnCheckedChangeListener { buttonView, isChecked ->
-            changeTheme(isChecked)
-        }
-
-        // -------------------- Call when Save Record Switch changes  --------------------
-        switch_save_record.isChecked = saveRecord
-        switch_save_record.setOnCheckedChangeListener { buttonView, isChecked ->
-            saveRecord = isChecked
         }
     }
 
@@ -202,12 +180,68 @@ class Activity3Handler : AppCompatActivity() {
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         val inflater = menuInflater
         inflater.inflate(R.menu.menu3_toolbar, menu)
+        initiateMenuItems(menu)
         return super.onCreateOptionsMenu(menu)
+    }
+
+    private fun initiateMenuItems(menu: Menu?){
+        // ----- Activities -----
+        val activity = menu?.findItem(R.id.activity_handler)
+        activity?.title = "-> Handler <-"
+        // ----- Settings -----
+        val settingDebug = menu?.findItem(R.id.settings_debug)
+        settingDebug?.title = if (debug) "Debug: ON" else "Debug: OFF"
+        val settingSaveRecord = menu?.findItem(R.id.settings_save_record)
+        settingSaveRecord?.title = if (saveRecord) "Save Record: ON" else "Save Record: OFF"
+        // ----- Versions -----
+        val version = menu?.findItem(R.id.version_3_0)
+        version?.title = "-> v 3.0 <-"
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         // Handle presses on the action bar menu items
         when (item.itemId) {
+            // -------------------- Activity menu --------------------
+            R.id.activity_manual -> {
+                if (debug) {
+                    Log.d("onOptionsItemSelected", "activity manual pressed")
+                }
+                val intent = Intent(this, Activity3Manual::class.java)
+                startActivity(intent)
+                return true
+            }
+            R.id.activity_handler -> {
+                if (debug) {
+                    Log.d("onOptionsItemSelected", "activity handler pressed")
+                }
+                return true
+            }
+            // -------------------- Settings Menu --------------------
+            R.id.settings_debug -> {
+                Log.d("onOptionsItemSelected", "settings debug pressed")
+                if (debug) {
+                    debug = false
+                    item.title = "Debug: OFF"
+                } else {
+                    debug = true
+                    item.title = "Debug: ON"
+                }
+                changeTheme(debug)
+                return true
+            }
+            R.id.settings_save_record -> {
+                if(saveRecord){
+                    saveRecord = false
+                    item.title = "Save Record: OFF"
+                } else {
+                    saveRecord = true
+                    item.title = "Save Record: ON"
+                }
+                if(debug){
+                    Log.d("onOptionItemSelected", "setting_save_record_pressed")
+                }
+            }
+
             // -------------------- Version menu --------------------
             R.id.version_1_0 -> {
                 if (debug) {
@@ -228,21 +262,6 @@ class Activity3Handler : AppCompatActivity() {
             R.id.version_3_0 -> {
                 if (debug) {
                     println("v3 pressed")
-                }
-                return true
-            }
-            // -------------------- Activity menu --------------------
-            R.id.activity_manual -> {
-                if (debug) {
-                    Log.d("onOptionsItemSelected", "activity manual pressed")
-                }
-                val intent = Intent(this, Activity3Manual::class.java)
-                startActivity(intent)
-                return true
-            }
-            R.id.activity_handler -> {
-                if (debug) {
-                    Log.d("onOptionsItemSelected", "activity handler pressed")
                 }
                 return true
             }
@@ -422,7 +441,9 @@ class Activity3Handler : AppCompatActivity() {
                 }
             }
             // Remove it
-            recordedSound = ArrayList(it.subList(nbZerosBeginning, it.size - nbZerosEnding))
+            if (nbZerosBeginning < it.size - nbZerosEnding){
+                recordedSound = ArrayList(it.subList(nbZerosBeginning, it.size - nbZerosEnding))
+            }
 
             // Log it
             if (debug) {
