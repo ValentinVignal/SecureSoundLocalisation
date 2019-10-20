@@ -65,20 +65,20 @@ def get_coordinates(offsets, sources):
     # TODO: make sure we don't start near a source
     coord = np.mean(sources)
 
-    def combinaison_number(i, j):
+    def combination_number(i, j):
         if i == j:
             raise Exception(f'i ({i}) can t be equal to j ({j})')
         i_ = min(i, j)
         j_ = max(i, j)
         res = int((nb_sources * i_) - (((i_ + 1) * i_) / 2) + j_ - i_ - 1)
-        # print(f'i {i}, j {j}, nb sources {nb_sources}, combinaison number {res}')
+        # print(f'i {i}, j {j}, nb sources {nb_sources}, combination number {res}')
         return res
 
     def f(coord):  # compute the matrix of the 3 position function (we want to solve f(x)=0)
         f = np.zeros(shape=(nb_combinaisons, 1))
         for i in range(0, nb_sources - 1):
             for j in range(i + 1, nb_sources):
-                c_n = combinaison_number(i, j)
+                c_n = combination_number(i, j)
                 f[c_n] = ((coord - sources[i]).norm2 - (coord - sources[j]).norm2) - diff_dist[c_n]
         return np.asmatrix(f)
 
@@ -93,7 +93,7 @@ def get_coordinates(offsets, sources):
         jac = np.zeros(shape=(nb_combinaisons, 2))
         for i in range(0, nb_sources - 1):
             for j in range(i + 1, nb_sources):
-                c_n = combinaison_number(i, j)
+                c_n = combination_number(i, j)
                 jac[c_n, 0] = ((x - sources[i].x) / (coord - sources[i]).norm2) - (
                         (x - sources[j].x) / (coord - sources[j]).norm2)
                 jac[c_n, 1] = ((y - sources[i].y) / (coord - sources[i]).norm2) - (
