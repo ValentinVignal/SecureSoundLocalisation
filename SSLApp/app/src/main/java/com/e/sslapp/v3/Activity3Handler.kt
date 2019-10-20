@@ -28,11 +28,7 @@ import com.e.sslapp.R
 import java.util.Calendar
 import android.os.Handler
 import kotlinx.android.synthetic.main.activity3_handler.*
-import kotlinx.android.synthetic.main.activity3_manual.button_start_recording
-import kotlinx.android.synthetic.main.activity3_manual.button_stop_recording
-import kotlinx.android.synthetic.main.activity3_manual.switch_debug
-import kotlinx.android.synthetic.main.activity3_manual.switch_save_record
-import kotlinx.android.synthetic.main.activity3_manual.text_view_state
+
 
 
 class Activity3Handler : AppCompatActivity() {
@@ -47,13 +43,13 @@ class Activity3Handler : AppCompatActivity() {
         //      Attributs
         // --------------------
 
-        var debug:Boolean = false // Use to debug (and for example print in the terminal)
+        var debug: Boolean = false // Use to debug (and for example print in the terminal)
 
         // --------------------
         //       Methods
         // --------------------
 
-        fun newRecordPath(rootDirectory: File): String{
+        fun newRecordPath(rootDirectory: File): String {
             var i = 0
             var nRecordPath = rootDirectory.absolutePath + "/recording_$i.pcm"
             while (File(nRecordPath).exists()) {
@@ -73,7 +69,8 @@ class Activity3Handler : AppCompatActivity() {
 
     // ---------- Debug options ----------
     private var saveRecord: Boolean = false
-    private var mSaveRecord: Boolean = false // Save the state of the save_record switch at the end of the recording
+    private var mSaveRecord: Boolean =
+        false // Save the state of the save_record switch at the end of the recording
 
     // ---------- State of the recorder ----------
     private var isRecording: Boolean = false
@@ -97,8 +94,6 @@ class Activity3Handler : AppCompatActivity() {
     private val rootDirectory: File =
         File(Environment.getExternalStorageDirectory().absolutePath + "/SSL")       // Diretory where it is gonna be saved
     private var recordedSound: ArrayList<Short>? = null     // The sound recorder by the phone
-    private var sentSound: ArrayList<Double>? = null      // The sound sent bu the Central Unit
-    private var convolutedSound: ArrayList<Double>? = null      // The convolution between recordedSound and sentSound
 
 
     // ------------------------------------------------------------
@@ -112,7 +107,7 @@ class Activity3Handler : AppCompatActivity() {
         // --------------------
 
         // -------------------- Set what needs to be set while debug --------------------
-        changeTheme(debug, onCreate=true)
+        changeTheme(debug, onCreate = true)
 
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity3_handler)
@@ -125,7 +120,6 @@ class Activity3Handler : AppCompatActivity() {
         actionBar?.subtitle = "SecureSoundLocalisation - v3.0"
         actionBar?.elevation = 4.0F
 
-
         // ---------- Check the permission ----------
         checkPermission()
 
@@ -134,40 +128,25 @@ class Activity3Handler : AppCompatActivity() {
             rootDirectory.mkdirs()
         }
 
-        // ----- Compute the supposed sent sound by the Central Unit -----
-        //recreateSentSound()
-
         // -------------------- Call when Start button is pressed --------------------
         button_start_recording.setOnClickListener {
-            if (checkPermission()){
+            if (checkPermission()) {
                 // We can start the recording
                 startRecording()
             }
         }
-
-        // -------------------- Call when Debug Switch changes  --------------------
-        switch_debug.isChecked = debug
-        switch_debug.setOnCheckedChangeListener { buttonView, isChecked ->
-            changeTheme(isChecked)
-        }
-
-        // -------------------- Call when Save Record Switch changes  --------------------
-        switch_save_record.isChecked = saveRecord
-        switch_save_record.setOnCheckedChangeListener { buttonView, isChecked ->
-            saveRecord = isChecked
-        }
     }
 
-    private fun checkPermission(): Boolean{
-        val isNotChecked =(ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.RECORD_AUDIO
-            ) != PackageManager.PERMISSION_GRANTED || ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE
-            ) != PackageManager.PERMISSION_GRANTED
-        )
-        if (isNotChecked){
+    private fun checkPermission(): Boolean {
+        val isNotChecked = (ContextCompat.checkSelfPermission(
+            this,
+            Manifest.permission.RECORD_AUDIO
+        ) != PackageManager.PERMISSION_GRANTED || ContextCompat.checkSelfPermission(
+            this,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE
+        ) != PackageManager.PERMISSION_GRANTED
+                )
+        if (isNotChecked) {
             val permissions = arrayOf(
                 Manifest.permission.RECORD_AUDIO,
                 Manifest.permission.WRITE_EXTERNAL_STORAGE,
@@ -178,7 +157,7 @@ class Activity3Handler : AppCompatActivity() {
         return !isNotChecked
     }
 
-    private fun changeTheme(onDebug:Boolean, onCreate:Boolean=false){
+    private fun changeTheme(onDebug: Boolean, onCreate: Boolean = false) {
         if (onDebug) {
             debug = true
             //global_layout.setBackgroundColor(Color.rgb(240, 240, 240))
@@ -189,7 +168,7 @@ class Activity3Handler : AppCompatActivity() {
             //global_layout.setBackgroundColor(Color.WHITE)
             setTheme(R.style.LightTheme)
         }
-        if(!onCreate){      // To avoid infinite loops
+        if (!onCreate) {      // To avoid infinite loops
             val intent = Intent(this, Activity3Handler::class.java)
             //intent.putExtra("debug", debug)
             startActivity(intent)
@@ -201,38 +180,30 @@ class Activity3Handler : AppCompatActivity() {
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         val inflater = menuInflater
         inflater.inflate(R.menu.menu3_toolbar, menu)
+        initiateMenuItems(menu)
         return super.onCreateOptionsMenu(menu)
+    }
+
+    private fun initiateMenuItems(menu: Menu?){
+        // ----- Activities -----
+        val activity = menu?.findItem(R.id.activity_handler)
+        activity?.title = "-> Handler <-"
+        // ----- Settings -----
+        val settingDebug = menu?.findItem(R.id.settings_debug)
+        settingDebug?.title = if (debug) "Debug: ON" else "Debug: OFF"
+        val settingSaveRecord = menu?.findItem(R.id.settings_save_record)
+        settingSaveRecord?.title = if (saveRecord) "Save Record: ON" else "Save Record: OFF"
+        // ----- Versions -----
+        val version = menu?.findItem(R.id.version_3_0)
+        version?.title = "-> v 3.0 <-"
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         // Handle presses on the action bar menu items
         when (item.itemId) {
-            // -------------------- Version menu --------------------
-            R.id.version_1_0 -> {
-                if (debug){
-                    println("v1 pressed")
-                }
-                val intent = Intent(this, Activity1Manual::class.java)
-                startActivity(intent)
-                return true
-            }
-            R.id.version_2_0 -> {
-                if(debug){
-                    println("v2 pressed")
-                }
-                val intent = Intent(this, Activity2Manual::class.java)
-                startActivity(intent)
-                return true
-            }
-            R.id.version_3_0 -> {
-                if(debug){
-                    println("v3 pressed")
-                }
-                return true
-            }
             // -------------------- Activity menu --------------------
             R.id.activity_manual -> {
-                if(debug){
+                if (debug) {
                     Log.d("onOptionsItemSelected", "activity manual pressed")
                 }
                 val intent = Intent(this, Activity3Manual::class.java)
@@ -240,8 +211,57 @@ class Activity3Handler : AppCompatActivity() {
                 return true
             }
             R.id.activity_handler -> {
-                if(debug){
+                if (debug) {
                     Log.d("onOptionsItemSelected", "activity handler pressed")
+                }
+                return true
+            }
+            // -------------------- Settings Menu --------------------
+            R.id.settings_debug -> {
+                Log.d("onOptionsItemSelected", "settings debug pressed")
+                if (debug) {
+                    debug = false
+                    item.title = "Debug: OFF"
+                } else {
+                    debug = true
+                    item.title = "Debug: ON"
+                }
+                changeTheme(debug)
+                return true
+            }
+            R.id.settings_save_record -> {
+                if(saveRecord){
+                    saveRecord = false
+                    item.title = "Save Record: OFF"
+                } else {
+                    saveRecord = true
+                    item.title = "Save Record: ON"
+                }
+                if(debug){
+                    Log.d("onOptionItemSelected", "setting_save_record_pressed")
+                }
+            }
+
+            // -------------------- Version menu --------------------
+            R.id.version_1_0 -> {
+                if (debug) {
+                    println("v1 pressed")
+                }
+                val intent = Intent(this, Activity1Manual::class.java)
+                startActivity(intent)
+                return true
+            }
+            R.id.version_2_0 -> {
+                if (debug) {
+                    println("v2 pressed")
+                }
+                val intent = Intent(this, Activity2Manual::class.java)
+                startActivity(intent)
+                return true
+            }
+            R.id.version_3_0 -> {
+                if (debug) {
+                    println("v3 pressed")
                 }
                 return true
             }
@@ -253,6 +273,7 @@ class Activity3Handler : AppCompatActivity() {
 
     // ---------- Use to change Short to Byte ----------
     infix fun Short.and(that: Int): Int = this.toInt().and(that)
+
     infix fun Short.shr(that: Int): Int = this.toInt().shr(that)
 
     private fun short2byte(sData: ShortArray): ByteArray {
@@ -274,19 +295,22 @@ class Activity3Handler : AppCompatActivity() {
     // ------------------------------ Start Recording ------------------------------
 
     private fun startRecording() {
-        if(debug){
+        if (debug) {
             // val currentDate = LocalDateTime.now()
             // var milliseconds = currentDate.getTime()
             val currentTime = Calendar.getInstance().timeInMillis
-            Log.d("startRecording","Button start pressed at $currentTime")
+            Log.d("startRecording", "Button start pressed at $currentTime")
         }
         if (!isRecording) {
             val startOffset = floor(form_offset.text.toString().toDouble() * 1000).toLong()
             val startTime = Calendar.getInstance().timeInMillis + startOffset
             val duration = floor(form_duration.text.toString().toDouble() * 1000).toLong()
             val stopTime = startTime + duration
-            if(debug){
-                Log.d("startRecording","offset : $startOffset - startTime : $startTime - duration : $duration - stopTime : $stopTime")
+            if (debug) {
+                Log.d(
+                    "startRecording",
+                    "offset : $startOffset - startTime : $startTime - duration : $duration - stopTime : $stopTime"
+                )
             }
             try {
                 prepareRecorder()
@@ -313,7 +337,7 @@ class Activity3Handler : AppCompatActivity() {
         }
     }
 
-    private fun prepareRecorder(){
+    private fun prepareRecorder() {
         recordedSound = ArrayList<Short>()      // Reset the recorded Sound
         isRecording = true
         Toast.makeText(this, "Recording started!", Toast.LENGTH_SHORT).show()
@@ -325,16 +349,16 @@ class Activity3Handler : AppCompatActivity() {
         )
     }
 
-    private fun writeAudioDataToFile(stopDate:Long) {
+    private fun writeAudioDataToFile(stopDate: Long) {
         // Write the output audio in byte
-        if(debug){
+        if (debug) {
             val currentTime = Calendar.getInstance().timeInMillis
             Log.d("writeAudioDataToFile", "start recording at $currentTime")
         }
 
         val sData = ShortArray(bufferElements2Rec)
 
-        if(debug){
+        if (debug) {
             val currentTime = Calendar.getInstance().timeInMillis
             Log.d("writeAudioDataToFile", "Just before while at $currentTime")
         }
@@ -352,7 +376,7 @@ class Activity3Handler : AppCompatActivity() {
                 println("Size of ArrayList: ${recordedSound?.size} -- ${recordedSound?.takeLast(10)}")
             }
         }
-        if(debug){
+        if (debug) {
             val currentTime = Calendar.getInstance().timeInMillis
             Log.d("writeAudioDataToFile", "stop recording at $currentTime")
         }
@@ -363,7 +387,7 @@ class Activity3Handler : AppCompatActivity() {
 
     private fun stopRecording() {
         // stops the recording activity
-        if (debug){
+        if (debug) {
             val currentTime = Calendar.getInstance().timeInMillis
             Log.d("stopRecording", "In function at time $currentTime")
         }
@@ -377,20 +401,58 @@ class Activity3Handler : AppCompatActivity() {
                 }
                 recorder = null
                 recordingThread = null
-                if(mSaveRecord){
-                    Toast.makeText(this, "Recording saved in $recordPath", Toast.LENGTH_SHORT).show()
+                if (mSaveRecord) {
+                    Toast.makeText(this, "Recording saved in $recordPath", Toast.LENGTH_SHORT)
+                        .show()
                 } else {
                     Toast.makeText(this, "Recording stopped", Toast.LENGTH_SHORT).show()
                 }
                 text_view_state.text = "Press Start to record"
 
-                // ----- Do the computation with the recordedSound -----
+                // ----- Do the computation with the recordedSound ----
+                cleanRecordedSound()        // Clean it
                 updateGraphRecorder()       // Plot it
                 //computeConvolutedSound()    // Compute the convolution with the sentSound
                 //updateGraphConvolutedSound()        // Plot the convoluted Sound
             }
         } else {
             Toast.makeText(this, "You are not recording right now!", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun cleanRecordedSound() {
+        recordedSound?.let {
+            // Check number of zeros at the beginning
+            var nbZerosBeginning = 0
+            for (i in 0 until it.size) {
+                if (it[i].toInt() == 0) {
+                    nbZerosBeginning++
+                } else {
+                    break
+                }
+            }
+            // Check number of zeros at the beginning
+            var nbZerosEnding = 0
+            for (i in 0 until it.size) {
+                if (it[i].toInt() == 0) {
+                    nbZerosEnding++
+                } else {
+                    break
+                }
+            }
+            // Remove it
+            if (nbZerosBeginning < it.size - nbZerosEnding){
+                recordedSound = ArrayList(it.subList(nbZerosBeginning, it.size - nbZerosEnding))
+            }
+
+            // Log it
+            if (debug) {
+                Log.d(
+                    "cleanRecordedSound",
+                    "Number of zeros at the: --  beginning : $nbZerosBeginning = ${nbZerosBeginning.toDouble() / recorderSampleRate.toDouble()} -- ending : $nbZerosEnding = ${nbZerosEnding.toDouble() / recorderSampleRate.toDouble()}"
+                )
+            }
+            // Basically : there was just 1024 values==0 at the beginning and the ending of the recorded sound = size of a buffer
         }
     }
 
@@ -405,7 +467,7 @@ class Activity3Handler : AppCompatActivity() {
                 )
             }
             val dataPointsArray: Array<DataPoint> = listToArray<DataPoint>(dataPoints)
-            val series = LineGraphSeries<DataPoint>( dataPointsArray )
+            val series = LineGraphSeries<DataPoint>(dataPointsArray)
 
             graph_waveform_recorded.removeAllSeries()
             graph_waveform_recorded.addSeries(series)

@@ -11,6 +11,7 @@
         android:id="@+id/activity_toolbar"
         layout="@layout/my_toolbar" />
 
+    <!--
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -44,9 +45,10 @@
             android:textColor="#E91E63"
             android:textOn="ON" />
     </LinearLayout>
+    -->
 
     <LinearLayout
-        android:layout_below="@+id/container_switch"
+        android:layout_below="@+id/activity_toolbar"
         android:layout_above="@id/text_view_state"
         android:layout_width="match_parent"
         android:layout_height="600dp"

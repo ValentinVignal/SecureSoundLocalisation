@@ -26,7 +26,6 @@ import java.lang.Math.*
 import android.util.Log
 import com.e.sslapp.v1.Activity1Manual
 import com.e.sslapp.v2.Activity2Manual
-import com.e.sslapp.v3.Activity3Handler
 import com.e.sslapp.R
 import java.util.Calendar
 
@@ -97,7 +96,6 @@ class Activity3Manual : AppCompatActivity() {
         actionBar?.subtitle = "SecureSoundLocalisation - v3.0"
         actionBar?.elevation = 4.0F
 
-
         // ---------- Check the permission ----------
         if (ContextCompat.checkSelfPermission(
                 this,
@@ -121,7 +119,6 @@ class Activity3Manual : AppCompatActivity() {
 
         // ----- Compute the supposed sent sound by the Central Unit -----
         recreateSentSound()
-        switch_save_record.isChecked = saveRecord
 
         // -------------------- Call when Start button is pressed --------------------
         button_start_recording.setOnClickListener {
@@ -151,6 +148,7 @@ class Activity3Manual : AppCompatActivity() {
             stopRecording()
         }
 
+        /*
         // -------------------- Call when Debug Switch changes  --------------------
         switch_debug.isChecked = debug
         switch_debug.setOnCheckedChangeListener { buttonView, isChecked ->
@@ -161,6 +159,7 @@ class Activity3Manual : AppCompatActivity() {
         switch_save_record.setOnCheckedChangeListener { buttonView, isChecked ->
             saveRecord = isChecked
         }
+        */
     }
 
     private fun changeTheme(onDebug:Boolean, onCreate:Boolean=false){
@@ -185,12 +184,68 @@ class Activity3Manual : AppCompatActivity() {
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         val inflater = menuInflater
         inflater.inflate(R.menu.menu3_toolbar, menu)
+        initiateMenuItems(menu)
         return super.onCreateOptionsMenu(menu)
+    }
+
+    private fun initiateMenuItems(menu: Menu?){
+        // ----- Activities -----
+        val activity = menu?.findItem(R.id.activity_manual)
+        activity?.title = "-> Manual <-"
+        // ----- Settings -----
+        val settingDebug = menu?.findItem(R.id.settings_debug)
+        settingDebug?.title = if (Activity3Handler.debug) "Debug: ON" else "Debug: OFF"
+        val settingSaveRecord = menu?.findItem(R.id.settings_save_record)
+        settingSaveRecord?.title = if (saveRecord) "Save Record: ON" else "Save Record: OFF"
+        // ----- Versions -----
+        val version = menu?.findItem(R.id.version_3_0)
+        version?.title = "-> v 3.0 <-"
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         // Handle presses on the action bar menu items
         when (item.itemId) {
+            // -------------------- Activity menu --------------------
+            R.id.activity_manual -> {
+                if(debug){
+                    Log.d("onOptionsItemSelected", "activity manual pressed")
+                }
+                return true
+            }
+            R.id.activity_handler -> {
+                if(debug){
+                    Log.d("onOptionsItemSelected", "activity handler pressed")
+                }
+                val intent = Intent(this, Activity3Handler::class.java)
+                startActivity(intent)
+                return true
+            }
+            // -------------------- Settings Menu --------------------
+            R.id.settings_debug -> {
+                Log.d("onOptionsItemSelected", "settings debug pressed")
+                if (debug) {
+                    debug = false
+                    item.title = "Debug: OFF"
+                } else {
+                    debug = true
+                    item.title = "Debug: ON"
+                }
+                changeTheme(debug)
+                return true
+            }
+            R.id.settings_save_record -> {
+                if(saveRecord){
+                    saveRecord = false
+                    item.title = "Save Record: OFF"
+                } else {
+                    saveRecord = true
+                    item.title = "Save Record: ON"
+                }
+                if(debug){
+                    Log.d("onOptionItemSelected", "setting_save_record_pressed")
+                }
+            }
+            // -------------------- Version menu --------------------
             R.id.version_1_0 -> {
                 if (debug){
                     println("v1 pressed")
@@ -211,20 +266,6 @@ class Activity3Manual : AppCompatActivity() {
                 if(debug){
                     println("v3 pressed")
                 }
-                return true
-            }
-            R.id.activity_manual -> {
-                if(debug){
-                    Log.d("onOptionsItemSelected", "activity manual pressed")
-                }
-                return true
-            }
-            R.id.activity_handler -> {
-                if(debug){
-                    Log.d("onOptionsItemSelected", "activity handler pressed")
-                }
-                val intent = Intent(this, Activity3Handler::class.java)
-                startActivity(intent)
                 return true
             }
         }

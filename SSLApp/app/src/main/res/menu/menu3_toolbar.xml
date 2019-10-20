@@ -6,35 +6,38 @@
     tools:context="in.amzbizsol.vts.MainActivity">
     <item
         android:id="@+id/activities"
-        android:title="activities">
+        android:title="activities"
+        app:showAsAction="ifRoom">
         <menu>
             <item
                 android:id="@+id/activity_manual"
                 android:orderInCategory="1"
-                android:title="manual"
-                app:showAsAction="never" />
+                android:title="Manual"
+                app:showAsAction="never"/>
             <item
                 android:id="@+id/activity_handler"
                 android:orderInCategory="2"
-                android:title="handler"
+                android:title="Handler"
                 app:showAsAction="never" />
         </menu>
     </item>
     <item
         android:id="@+id/settings"
-        android:title="settings">
+        android:title="settings"
+        app:showAsAction="ifRoom">
         <menu>
             <item
-                android:id="@+id/settings_debug"
-                android:title="debug"/>
-            <item
                 android:id="@+id/settings_save_record"
-                android:title="save record"/>
+                android:title="Save Record"/>
+            <item
+                android:id="@+id/settings_debug"
+                android:title="Debug"/>
         </menu>
     </item>
     <item
         android:id="@+id/versions"
-        android:title="versions">
+        android:title="versions"
+        app:showAsAction="ifRoom">
         <menu>
             <item
                 android:id="@+id/version_1_0"
