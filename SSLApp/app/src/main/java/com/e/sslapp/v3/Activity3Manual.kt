@@ -41,8 +41,8 @@ class Activity3Manual : AppCompatActivity() {
 
     // ---------- Debug options ----------
     companion object {
-       var debug:Boolean = false // Use to debug (and for example print in the terminal)
     }
+    var debug:Boolean = false // Use to debug (and for example print in the terminal)
     private var saveRecord: Boolean = false
     private var mSaveRecord: Boolean = false // Save the state of the save_record switch at the end of the recording
 
@@ -83,6 +83,7 @@ class Activity3Manual : AppCompatActivity() {
         // --------------------
 
         // -------------------- Set what needs to be set while debug --------------------
+        getAllIntent()
         changeTheme(debug, onCreate=true)
 
         super.onCreate(savedInstanceState)
@@ -97,21 +98,8 @@ class Activity3Manual : AppCompatActivity() {
         actionBar?.elevation = 4.0F
 
         // ---------- Check the permission ----------
-        if (ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.RECORD_AUDIO
-            ) != PackageManager.PERMISSION_GRANTED || ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            val permissions = arrayOf(
-                Manifest.permission.RECORD_AUDIO,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                Manifest.permission.READ_EXTERNAL_STORAGE
-            )
-            ActivityCompat.requestPermissions(this, permissions, 0)
-        }
+        checkPermission()
+
         // ----- Create the directory if it doesn't exist -----
         if (!rootDirectory.exists()) {
             rootDirectory.mkdirs()
@@ -123,22 +111,7 @@ class Activity3Manual : AppCompatActivity() {
         // -------------------- Call when Start button is pressed --------------------
         button_start_recording.setOnClickListener {
             // If the we didn't allow
-            if (ContextCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.RECORD_AUDIO
-                ) != PackageManager.PERMISSION_GRANTED || ContextCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-                val permissions = arrayOf(
-                    Manifest.permission.RECORD_AUDIO,
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                    Manifest.permission.READ_EXTERNAL_STORAGE
-                )
-                ActivityCompat.requestPermissions(this, permissions, 0)
-            } else {
-                // We can start the recording
+            if (checkPermission()){
                 startRecording()
             }
         }
@@ -162,6 +135,32 @@ class Activity3Manual : AppCompatActivity() {
         */
     }
 
+    private fun getAllIntent(){
+        val intent = this.intent
+        debug = intent.getBooleanExtra("debug", debug)
+        saveRecord = intent.getBooleanExtra("saveRecord", saveRecord)
+    }
+
+    private fun checkPermission(): Boolean {
+        val isNotChecked = (ContextCompat.checkSelfPermission(
+            this,
+            Manifest.permission.RECORD_AUDIO
+        ) != PackageManager.PERMISSION_GRANTED || ContextCompat.checkSelfPermission(
+            this,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE
+        ) != PackageManager.PERMISSION_GRANTED
+                )
+        if (isNotChecked) {
+            val permissions = arrayOf(
+                Manifest.permission.RECORD_AUDIO,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                Manifest.permission.READ_EXTERNAL_STORAGE
+            )
+            ActivityCompat.requestPermissions(this, permissions, 0)
+        }
+        return !isNotChecked
+    }
+
     private fun changeTheme(onDebug:Boolean, onCreate:Boolean=false){
         if (onDebug) {
             debug = true
@@ -174,9 +173,7 @@ class Activity3Manual : AppCompatActivity() {
             setTheme(R.style.LightTheme)
         }
         if(!onCreate){      // To avoid infinite loops
-            val intent = Intent(this, Activity3Manual::class.java)
-            //intent.putExtra("debug", debug)
-            startActivity(intent)
+            changeActivity(Activity3Manual::class.java)
         }
     }
 
@@ -194,7 +191,7 @@ class Activity3Manual : AppCompatActivity() {
         activity?.title = "-> Manual <-"
         // ----- Settings -----
         val settingDebug = menu?.findItem(R.id.settings_debug)
-        settingDebug?.title = if (Activity3Handler.debug) "Debug: ON" else "Debug: OFF"
+        settingDebug?.title = if (debug) "Debug: ON" else "Debug: OFF"
         val settingSaveRecord = menu?.findItem(R.id.settings_save_record)
         settingSaveRecord?.title = if (saveRecord) "Save Record: ON" else "Save Record: OFF"
         // ----- Versions -----
@@ -216,8 +213,7 @@ class Activity3Manual : AppCompatActivity() {
                 if(debug){
                     Log.d("onOptionsItemSelected", "activity handler pressed")
                 }
-                val intent = Intent(this, Activity3Handler::class.java)
-                startActivity(intent)
+                changeActivity(Activity3Handler::class.java)
                 return true
             }
             // -------------------- Settings Menu --------------------
@@ -250,16 +246,14 @@ class Activity3Manual : AppCompatActivity() {
                 if (debug){
                     println("v1 pressed")
                 }
-                val intent = Intent(this, Activity1Manual::class.java)
-                startActivity(intent)
+                changeActivity(Activity1Manual::class.java)
                 return true
             }
             R.id.version_2_0 -> {
                 if(debug){
                     println("v2 pressed")
                 }
-                val intent = Intent(this, Activity2Manual::class.java)
-                startActivity(intent)
+                changeActivity(Activity2Manual::class.java)
                 return true
             }
             R.id.version_3_0 -> {
@@ -270,6 +264,15 @@ class Activity3Manual : AppCompatActivity() {
             }
         }
         return super.onOptionsItemSelected(item)
+    }
+
+    private fun changeActivity(activity: Class<*>){
+        val intent = Intent(this, activity)
+        // ----- Put Extra -----
+        intent.putExtra("debug", debug)     // Debug value
+        intent.putExtra("saveRecord", saveRecord)
+        // ----- Start activity -----
+        startActivity(intent)
     }
 
     // ---------- Use to change Short to Byte ----------

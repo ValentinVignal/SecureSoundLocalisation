@@ -56,27 +56,6 @@
         android:layout_height="600dp"
         android:id="@+id/container_graphview"
         android:orientation="vertical">
-        <!--
-        <com.jjoe64.graphview.GraphView
-            android:id="@+id/graph_waveform_sent"
-            android:layout_width="match_parent"
-            android:layout_marginEnd="5dp"
-            android:layout_marginStart="10dp"
-            android:layout_height="0px"
-            android:layout_weight="1"
-            android:background="?colorBackground"/>
-        -->
-
-        <!--
-        <com.jjoe64.graphview.GraphView
-            android:id="@+id/graph_waveform_convoluted"
-            android:layout_width="match_parent"
-            android:layout_marginEnd="10dp"
-            android:layout_height="0px"
-            android:layout_weight="2"
-            android:background="?colorBackground"
-            />
-        -->
 
         <com.jjoe64.graphview.GraphView
             android:id="@+id/graph_waveform_recorded"

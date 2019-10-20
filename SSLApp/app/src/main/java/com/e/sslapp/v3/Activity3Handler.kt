@@ -1,6 +1,7 @@
 package com.e.sslapp.v3
 
 import android.Manifest
+import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.AudioFormat
@@ -43,7 +44,7 @@ class Activity3Handler : AppCompatActivity() {
         //      Attributs
         // --------------------
 
-        var debug: Boolean = false // Use to debug (and for example print in the terminal)
+        // var debug: Boolean = false // Use to debug (and for example print in the terminal)
 
         // --------------------
         //       Methods
@@ -68,6 +69,7 @@ class Activity3Handler : AppCompatActivity() {
     private var toolbar: Toolbar? = null
 
     // ---------- Debug options ----------
+    private var debug: Boolean = false
     private var saveRecord: Boolean = false
     private var mSaveRecord: Boolean =
         false // Save the state of the save_record switch at the end of the recording
@@ -106,7 +108,8 @@ class Activity3Handler : AppCompatActivity() {
         // Called at the creation
         // --------------------
 
-        // -------------------- Set what needs to be set while debug --------------------
+        // -------------------- Set what needs to be --------------------
+        getAllIntent()
         changeTheme(debug, onCreate = true)
 
         super.onCreate(savedInstanceState)
@@ -137,6 +140,12 @@ class Activity3Handler : AppCompatActivity() {
         }
     }
 
+    private fun getAllIntent(){
+        val intent = this.intent
+        debug = intent.getBooleanExtra("debug", debug)
+        saveRecord = intent.getBooleanExtra("saveRecord", saveRecord)
+    }
+
     private fun checkPermission(): Boolean {
         val isNotChecked = (ContextCompat.checkSelfPermission(
             this,
@@ -160,18 +169,14 @@ class Activity3Handler : AppCompatActivity() {
     private fun changeTheme(onDebug: Boolean, onCreate: Boolean = false) {
         if (onDebug) {
             debug = true
-            //global_layout.setBackgroundColor(Color.rgb(240, 240, 240))
             setTheme(R.style.DarkTheme)
 
         } else {
             debug = false
-            //global_layout.setBackgroundColor(Color.WHITE)
             setTheme(R.style.LightTheme)
         }
         if (!onCreate) {      // To avoid infinite loops
-            val intent = Intent(this, Activity3Handler::class.java)
-            //intent.putExtra("debug", debug)
-            startActivity(intent)
+            changeActivity(Activity3Handler::class.java)
         }
     }
 
@@ -206,8 +211,11 @@ class Activity3Handler : AppCompatActivity() {
                 if (debug) {
                     Log.d("onOptionsItemSelected", "activity manual pressed")
                 }
+                /*
                 val intent = Intent(this, Activity3Manual::class.java)
                 startActivity(intent)
+                 */
+                changeActivity(Activity3Manual::class.java)
                 return true
             }
             R.id.activity_handler -> {
@@ -247,16 +255,14 @@ class Activity3Handler : AppCompatActivity() {
                 if (debug) {
                     println("v1 pressed")
                 }
-                val intent = Intent(this, Activity1Manual::class.java)
-                startActivity(intent)
+                changeActivity(Activity1Manual::class.java)
                 return true
             }
             R.id.version_2_0 -> {
                 if (debug) {
                     println("v2 pressed")
                 }
-                val intent = Intent(this, Activity2Manual::class.java)
-                startActivity(intent)
+                changeActivity(Activity2Manual::class.java)
                 return true
             }
             R.id.version_3_0 -> {
@@ -268,6 +274,17 @@ class Activity3Handler : AppCompatActivity() {
         }
         return super.onOptionsItemSelected(item)
     }
+
+
+    private fun changeActivity(activity: Class<*>){
+        val intent = Intent(this, activity)
+        // ----- Put Extra -----
+        intent.putExtra("debug", debug)     // Debug value
+        intent.putExtra("saveRecord", saveRecord)
+        // ----- Start activity -----
+        startActivity(intent)
+    }
+
 
     // ------------------------------ Helper ------------------------------
 
