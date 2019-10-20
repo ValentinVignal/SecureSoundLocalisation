@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    tools:context=".v3.Activity3Manual"
+    android:id="@+id/global_layout"
+    >
+
+    <include
+        android:id="@+id/activity_toolbar"
+        layout="@layout/my_toolbar" />
+
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/container_form"
+        android:layout_below="@+id/activity_toolbar"
+        android:orientation="horizontal"
+        >
+        <TextView
+            android:layout_width="0px"
+            android:layout_height="0px"
+            android:layout_weight="1"
+            />
+        <EditText
+            android:id="@+id/form_offset"
+            android:layout_width="0px"
+            android:layout_height="wrap_content"
+            android:hint="Offset"
+            android:text="1.5"
+            android:layout_weight="1"
+            android:inputType="numberDecimal"
+            />
+        <EditText
+            android:id="@+id/form_duration"
+            android:layout_width="0px"
+            android:layout_height="wrap_content"
+            android:hint="Duration"
+            android:layout_weight="1"
+            android:text="2"
+            android:inputType="numberDecimal"
+            />
+        <TextView
+            android:layout_width="0px"
+            android:layout_height="0px"
+            android:layout_weight="1"
+            />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_below="@+id/container_form"
+        android:layout_above="@id/text_view_state"
+        android:layout_width="match_parent"
+        android:layout_height="600dp"
+        android:id="@+id/container_graphview"
+        android:orientation="vertical">
+        <!--
+        <com.jjoe64.graphview.GraphView
+            android:id="@+id/graph_waveform_sent"
+            android:layout_width="match_parent"
+            android:layout_marginEnd="5dp"
+            android:layout_marginStart="10dp"
+            android:layout_height="0px"
+            android:layout_weight="1"
+            android:background="?colorBackground"/>
+        -->
+
+        <!--
+        <com.jjoe64.graphview.GraphView
+            android:id="@+id/graph_waveform_convoluted"
+            android:layout_width="match_parent"
+            android:layout_marginEnd="10dp"
+            android:layout_height="0px"
+            android:layout_weight="2"
+            android:background="?colorBackground"
+            />
+        -->
+
+        <com.jjoe64.graphview.GraphView
+            android:id="@+id/graph_waveform_recorded"
+            android:layout_width="match_parent"
+            android:layout_height="0px"
+            android:layout_marginEnd="10dp"
+            android:layout_weight="2"
+            android:layout_centerVertical="true"
+            android:background="?colorBackground" />
+
+    </LinearLayout>
+
+
+    <TextView
+        android:id="@+id/text_view_state"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="10dp"
+        android:layout_centerHorizontal="true"
+        android:layout_above="@id/container_button"
+        android:text="Press Start to record"
+        android:textColor="@color/colorPrimary"
+        android:textSize="15sp"
+        android:textStyle="bold" />
+
+    <LinearLayout
+        android:id="@+id/container_button"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:layout_alignParentBottom="true"
+        android:layout_marginBottom="0dp"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/button_start_recording"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:text="Start"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+
+</RelativeLayout>

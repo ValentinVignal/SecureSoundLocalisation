@@ -1,4 +1,4 @@
-package com.e.sslapp
+package com.e.sslapp.v2
 
 import android.Manifest
 import android.content.pm.PackageManager
@@ -11,8 +11,9 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import kotlinx.android.synthetic.main.activity_main3.*
+import kotlinx.android.synthetic.main.activity2_manual.*
 import android.media.AudioRecord
+import com.e.sslapp.R
 import com.jjoe64.graphview.series.DataPoint
 import com.jjoe64.graphview.series.LineGraphSeries
 import java.util.*
@@ -21,7 +22,7 @@ import java.io.*
 import java.lang.Math.*
 
 
-class MainActivity3 : AppCompatActivity() {
+class Activity2Manual : AppCompatActivity() {
 
     // ------------------------------------------------------------
     //                           Attributs
@@ -68,7 +69,7 @@ class MainActivity3 : AppCompatActivity() {
         // Call at the creation
         // --------------------
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main3)
+        setContentView(R.layout.activity2_manual)
 
         // ---------- Check the permission ----------
         if (ContextCompat.checkSelfPermission(

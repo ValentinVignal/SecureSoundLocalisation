@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context="in.amzbizsol.vts.MainActivity">
+    <item
+        android:id="@+id/activities"
+        android:title="activities"
+        app:showAsAction="ifRoom">
+        <menu>
+            <item
+                android:id="@+id/activity_manual"
+                android:orderInCategory="1"
+                android:title="Manual"
+                app:showAsAction="never"/>
+            <item
+                android:id="@+id/activity_handler"
+                android:orderInCategory="2"
+                android:title="Handler"
+                app:showAsAction="never" />
+        </menu>
+    </item>
+    <item
+        android:id="@+id/settings"
+        android:title="settings"
+        app:showAsAction="ifRoom">
+        <menu>
+            <item
+                android:id="@+id/settings_save_record"
+                android:title="Save Record"/>
+            <item
+                android:id="@+id/settings_debug"
+                android:title="Debug"/>
+        </menu>
+    </item>
+    <item
+        android:id="@+id/versions"
+        android:title="versions"
+        app:showAsAction="ifRoom">
+        <menu>
+            <item
+                android:id="@+id/version_1_0"
+                android:orderInCategory="1"
+                android:title="v 1.0"
+                app:showAsAction="never" />
+            <item
+                android:id="@+id/version_2_0"
+                android:orderInCategory="2"
+                android:title="v 2.0"
+                app:showAsAction="never" />
+            <item
+                android:id="@+id/version_3_0"
+                android:orderInCategory="3"
+                android:title="v 3.0"
+                app:showAsAction="never" />
+        </menu>
+    </item>
+</menu>

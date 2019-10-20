@@ -1,3 +1,4 @@
 <resources>
-    <string name="app_name">SLLApp</string>
+    <string name="app_name">SSLApp</string>
+    <string name="empty"> </string>
 </resources>
