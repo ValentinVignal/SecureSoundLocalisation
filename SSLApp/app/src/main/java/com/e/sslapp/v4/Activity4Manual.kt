@@ -218,6 +218,13 @@ class Activity4Manual : AppCompatActivity() {
                 changeActivity(Activity3Handler::class.java)
                 return true
             }
+            R.id.activity_bluetooth-> {
+                if (debug) {
+                    Log.d("onOptionsItemSelected", "activity bluetooth pressed")
+                }
+                changeActivity(Activity4Bluetooth::class.java)
+                return true
+            }
             // -------------------- Settings Menu --------------------
             R.id.settings_debug -> {
                 Log.d("onOptionsItemSelected", "settings debug pressed")
