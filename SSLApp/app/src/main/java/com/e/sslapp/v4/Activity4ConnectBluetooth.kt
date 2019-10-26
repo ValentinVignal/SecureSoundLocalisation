@@ -3,7 +3,10 @@ package com.e.sslapp.v4
 import android.Manifest
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.media.AudioFormat
 import android.media.MediaRecorder
@@ -30,13 +33,15 @@ import com.e.sslapp.v3.Activity3Handler
 import com.e.sslapp.R
 import java.util.Calendar
 import android.os.Handler
+import android.os.Message
 import android.widget.ArrayAdapter
 import kotlinx.android.synthetic.main.activity3_handler.*
 import kotlinx.android.synthetic.main.activity4_bluetooth.*
 import com.e.sslapp.customElements.BluetoothClient
+// import com.e.sslapp.customElements.BluetoothReceiver
 
 
-class Activity4Bluetooth : AppCompatActivity() {
+class Activity4ConnectBluetooth : AppCompatActivity() {
 
     // ------------------------------------------------------------
     //                           Static object
@@ -64,6 +69,7 @@ class Activity4Bluetooth : AppCompatActivity() {
             return nRecordPath
         }
     }
+
 
     // ------------------------------------------------------------
     //                           Attributs
@@ -108,6 +114,9 @@ class Activity4Bluetooth : AppCompatActivity() {
     private var arrayListPairedBluetoothDevices: ArrayList<BluetoothDevice>? = null
 
     private var connectedBluetoothDevice: BluetoothDevice? = null
+    private var foundBluetoothDevices: ArrayList<BluetoothDevice>? = null
+    //private var bluetoothReceiver: BluetoothReceiver? = null
+
 
     // ------------------------------------------------------------
     //                           Methods
@@ -124,7 +133,7 @@ class Activity4Bluetooth : AppCompatActivity() {
         changeTheme(debug, onCreate = true)
 
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity4_bluetooth)
+        setContentView(R.layout.activity4_connect_bluetooth)
 
         // ---------- Handle Toolbar ----------
         toolbar = findViewById(R.id.activity_toolbar)
@@ -144,30 +153,6 @@ class Activity4Bluetooth : AppCompatActivity() {
 
         // ---------- Bluetooth ----------
         initBluetooth()
-
-        // -------------------- Call when Start button is pressed --------------------
-        button_send_message.setOnClickListener {
-            sendMessage()
-        }
-
-        button_refresh_bluetooth.setOnClickListener {
-            if (debug) {
-                Log.d(
-                    "button refresh bluetooth on click listener",
-                    "Button RefreshBluetooth pressed"
-                )
-            }
-            refreshBluetooth()
-        }
-
-        button_connect_bluetooth.setOnClickListener{
-            changeActivity(Activity4ConnectBluetooth::class.java)
-        }
-
-        // If no bluetooth device connected, ask for connection:
-        if(connectedBluetoothDevice == null){
-            changeActivity(Activity4ConnectBluetooth::class.java)
-        }
     }
 
     private fun getAllIntent() {
@@ -187,6 +172,9 @@ class Activity4Bluetooth : AppCompatActivity() {
         ) != PackageManager.PERMISSION_GRANTED || ContextCompat.checkSelfPermission(
             this,
             Manifest.permission.BLUETOOTH
+        ) != PackageManager.PERMISSION_GRANTED || ContextCompat.checkSelfPermission(
+            this,
+            Manifest.permission.BLUETOOTH_ADMIN
         ) != PackageManager.PERMISSION_GRANTED
                 )
         if (isNotChecked) {
@@ -194,7 +182,8 @@ class Activity4Bluetooth : AppCompatActivity() {
                 Manifest.permission.RECORD_AUDIO,
                 Manifest.permission.WRITE_EXTERNAL_STORAGE,
                 Manifest.permission.READ_EXTERNAL_STORAGE,
-                Manifest.permission.BLUETOOTH
+                Manifest.permission.BLUETOOTH,
+                Manifest.permission.BLUETOOTH_ADMIN
             )
             ActivityCompat.requestPermissions(this, permissions, 0)
         }
@@ -211,7 +200,7 @@ class Activity4Bluetooth : AppCompatActivity() {
             setTheme(R.style.LightTheme)
         }
         if (!onCreate) {      // To avoid infinite loops
-            changeActivity(Activity4Bluetooth::class.java)
+            changeActivity(Activity4ConnectBluetooth::class.java)
         }
     }
 
@@ -220,7 +209,17 @@ class Activity4Bluetooth : AppCompatActivity() {
         arrayListPaired = ArrayList<String>()
         arrayListBluetoothDevices = ArrayList<BluetoothDevice>()
         arrayListPairedBluetoothDevices = ArrayList<BluetoothDevice>()
+
+        // Paired devices
         refreshBluetooth()
+
+        // Found devices
+        /*
+        bluetoothReceiver = BluetoothReceiver()
+        makeDiscoverable()
+
+         */
+
     }
 
     // ------------------------------ Menu ------------------------------
@@ -393,6 +392,24 @@ class Activity4Bluetooth : AppCompatActivity() {
         }
         text_paired_devices.text = s
     }
+
+    private fun makeDiscoverable(){
+        // To make the device discoverable by the other devices through bluetooth
+        val discoverableIntent = Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE)
+        discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 10)
+        startActivity(discoverableIntent)
+    }
+
+    /*
+    private fun startSearching(){
+        val intentFilter = IntentFilter(BluetoothDevice.ACTION_FOUND)
+        this.registerReceiver(bluetoothReceiver, intentFilter)
+        bluetoothAdapter?.startDiscovery()
+
+    }
+
+     */
+
 
 
     private fun sendMessage() {
