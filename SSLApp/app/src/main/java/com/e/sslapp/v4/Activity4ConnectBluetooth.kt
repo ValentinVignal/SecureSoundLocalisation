@@ -72,7 +72,7 @@ class Activity4ConnectBluetooth : AppCompatActivity() {
     private var toolbar: Toolbar? = null
 
     // ---------- Debug options ----------
-    private var debug: Boolean = false
+    private var debug: Boolean = true
     private var saveRecord: Boolean = false
     private var mSaveRecord: Boolean =
         false // Save the state of the save_record switch at the end of the recording

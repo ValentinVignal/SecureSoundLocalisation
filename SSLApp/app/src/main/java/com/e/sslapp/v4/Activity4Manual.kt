@@ -44,7 +44,7 @@ class Activity4Manual : AppCompatActivity() {
     // ---------- Debug options ----------
     companion object {
     }
-    var debug:Boolean = false // Use to debug (and for example print in the terminal)
+    var debug:Boolean = true // Use to debug (and for example print in the terminal)
     private var saveRecord: Boolean = false
     private var mSaveRecord: Boolean = false // Save the state of the save_record switch at the end of the recording
 
