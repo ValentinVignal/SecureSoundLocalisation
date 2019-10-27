@@ -334,6 +334,7 @@ class Activity4Bluetooth : AppCompatActivity() {
         intent.putExtra("debug", debug)     // Debug value
         intent.putExtra("saveRecord", saveRecord)
         intent.putExtra("connectedBluetoothDevice", connectedBluetoothDevice)
+        intent.putExtra("previousActivity", "Bluetooth")
         // ----- Start activity -----
         startActivity(intent)
     }

@@ -29,8 +29,12 @@ import com.e.sslapp.v3.Activity3Handler
 import com.e.sslapp.R
 import java.util.Calendar
 import android.os.Handler
+import android.view.View
+import android.widget.Adapter
+import android.widget.AdapterView
 import kotlinx.android.synthetic.main.activity3_handler.*
-
+import kotlinx.android.synthetic.main.activity3_handler.text_view_state
+import kotlinx.android.synthetic.main.activity4_connect_bluetooth.*
 
 
 class Activity4Handler : AppCompatActivity() {
@@ -139,6 +143,7 @@ class Activity4Handler : AppCompatActivity() {
                 startRecording()
             }
         }
+
     }
 
     private fun getAllIntent(){
