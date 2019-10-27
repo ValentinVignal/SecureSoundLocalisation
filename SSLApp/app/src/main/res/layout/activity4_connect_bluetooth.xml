@@ -42,15 +42,24 @@
                 android:layout_height="wrap_content"
                 android:text="Paired devices"
                 android:gravity="center"
+                android:visibility="gone"
                 />
             <TextView
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
+                android:layout_height="wrap_content"
                 android:text=""
                 android:id="@+id/text_paired_devices"
                 android:scrollbars="vertical"
-                
+                android:visibility="gone"
                 />
+            <ListView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:id="@+id/listview_paired_devices"
+
+                >
+
+            </ListView>
         </LinearLayout>
         <LinearLayout
             android:layout_width="match_parent"

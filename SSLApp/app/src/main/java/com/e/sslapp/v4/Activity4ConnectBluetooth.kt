@@ -11,7 +11,6 @@ import android.content.pm.PackageManager
 import android.media.AudioFormat
 import android.os.Bundle
 import android.os.Environment
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -22,6 +21,8 @@ import androidx.appcompat.widget.Toolbar
 import kotlin.collections.ArrayList
 import java.io.*
 import android.util.Log
+import android.view.View
+import android.widget.*
 import com.e.sslapp.v1.Activity1Manual
 import com.e.sslapp.v2.Activity2Manual
 import com.e.sslapp.v3.Activity3Handler
@@ -66,6 +67,8 @@ class Activity4ConnectBluetooth : AppCompatActivity() {
     //                           Attributs
     // ------------------------------------------------------------
 
+    private var previousActivity: String? = "Bluetooth"
+
     // ---------- Toolbar ----------
     private var toolbar: Toolbar? = null
 
@@ -102,7 +105,8 @@ class Activity4ConnectBluetooth : AppCompatActivity() {
     private var bluetoothAdapter: BluetoothAdapter? = null
 
     // Paired
-    private var arrayListPaired: ArrayList<String>? = null
+    private var arrayListPaired: ArrayList<String> = ArrayList<String>()
+    private var arrayAdapterPaired: ArrayAdapter<String>? = null
     private var arrayListPairedBluetoothDevices: ArrayList<BluetoothDevice>? = null
 
     // Found
@@ -180,13 +184,22 @@ class Activity4ConnectBluetooth : AppCompatActivity() {
                 startScan()
             }
         }
+        listview_paired_devices.setOnItemClickListener { parent, view, position, id ->
+            arrayListPairedBluetoothDevices?.let{
+                connectedBluetoothDevice = it[position]
+                activityBack()
+            }
+
+        }
+
     }
 
     private fun getAllIntent() {
         val intent = this.intent
         debug = intent.getBooleanExtra("debug", debug)
         saveRecord = intent.getBooleanExtra("saveRecord", saveRecord)
-        connectedBluetoothDevice = intent.getParcelableExtra("connectedBluetoothDevice")
+        //connectedBluetoothDevice = intent.getParcelableExtra("connectedBluetoothDevice")
+        previousActivity = intent.getStringExtra("previousActivity")
     }
 
     private fun checkPermission(): Boolean {
@@ -235,7 +248,7 @@ class Activity4ConnectBluetooth : AppCompatActivity() {
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
 
         // Paired devices
-        arrayListPaired = ArrayList<String>()
+        resetArrayListPaired()
         arrayListPairedBluetoothDevices = ArrayList<BluetoothDevice>()
         refreshBluetooth()
 
@@ -349,12 +362,28 @@ class Activity4ConnectBluetooth : AppCompatActivity() {
         return super.onOptionsItemSelected(item)
     }
 
+    private fun activityBack(){
+        when(previousActivity){
+            "Manual" -> {
+                changeActivity(Activity4Manual::class.java)
+            }
+            "Handler" -> {
+                changeActivity(Activity4Handler::class.java)
+            }
+            "Bluetooth" -> {
+                changeActivity(Activity4Bluetooth::class.java)
+            }
+        }
+
+    }
+
     private fun changeActivity(activity: Class<*>) {
         val intent = Intent(this, activity)
         // ----- Put Extra -----
         intent.putExtra("debug", debug)     // Debug value
         intent.putExtra("saveRecord", saveRecord)
         intent.putExtra("connectedBluetoothDevice", connectedBluetoothDevice)
+        intent.putExtra("previousActivity", "ConnectBlueTooth")
         // ----- Start activity -----
         startActivity(intent)
     }
@@ -387,9 +416,17 @@ class Activity4ConnectBluetooth : AppCompatActivity() {
     // ------------------------------ Handle button ------------------------------
 
     // ---------- Paired Devices ----------
-    private fun refreshBluetooth() {
+    private fun resetArrayListPaired(){
         arrayListPaired = ArrayList<String>()
+        arrayAdapterPaired = ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, arrayListPaired)
+        val listViewPaired = findViewById<ListView>(R.id.listview_paired_devices)
+        listViewPaired.adapter = arrayAdapterPaired
+    }
+
+    private fun refreshBluetooth() {
+        resetArrayListPaired()
         arrayListPairedBluetoothDevices = ArrayList<BluetoothDevice>()
+        listview_paired_devices.clearChoices()
         val pairedDevice: Set<BluetoothDevice>? = bluetoothAdapter?.bondedDevices
         pairedDevice?.let{
             if (it.isNotEmpty()) {
@@ -407,13 +444,16 @@ class Activity4ConnectBluetooth : AppCompatActivity() {
     }
 
     private fun showArrayListPaired(){
-        var s: String = ""
+        var s = ""
         arrayListPaired?.let{
             for(m in it){
                 s += m + ",\n"
             }
         }
         text_paired_devices.text = s
+        Log.d("showArrayListPared", "$arrayAdapterPaired")
+        arrayAdapterPaired?.notifyDataSetChanged()
+
     }
 
     // ---------- Scan Devices ----------
