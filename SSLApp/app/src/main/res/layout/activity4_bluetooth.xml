@@ -13,12 +13,67 @@
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:id="@+id/container_form"
         android:orientation="vertical"
         android:layout_below="@+id/activity_toolbar"
         android:layout_above="@+id/text_view_state"
+        android:scrollbars="vertical"
         >
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            >
+            <TextView
+                android:layout_width="0px"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Paired Device"
+                />
+            <TextView
+                android:layout_width="0px"
+                android:layout_height="wrap_content"
+                android:layout_weight="4"
+                android:id="@+id/text_paired_device"
+                />
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            >
+            <TextView
+                android:layout_width="0px"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Received message 1"
+                />
+            <TextView
+                android:layout_width="0px"
+                android:layout_height="wrap_content"
+                android:layout_weight="4"
+                android:id="@+id/text_received_message1"
+                />
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            >
+            <TextView
+                android:layout_width="0px"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Received message 2"
+                />
+            <TextView
+                android:layout_width="0px"
+                android:layout_height="wrap_content"
+                android:layout_weight="4"
+                android:id="@+id/text_received_message2"
+                />
+        </LinearLayout>
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -33,13 +88,12 @@
             <EditText
                 android:layout_width="0px"
                 android:layout_height="wrap_content"
-                android:layout_weight="2"
+                android:layout_weight="4"
                 android:id="@+id/form_message_to_send"
                 android:hint="My Message"
                 android:inputType="text"
                 android:text="My Message"
                 />
-
         </LinearLayout>
         <LinearLayout
             android:layout_width="match_parent"
@@ -50,36 +104,14 @@
                 android:layout_width="0px"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Received message"
+                android:text="Received message 3"
                 />
             <TextView
                 android:layout_width="0px"
                 android:layout_height="wrap_content"
-                android:layout_weight="2"
-                android:id="@+id/text_received_message"
+                android:layout_weight="4"
+                android:id="@+id/text_received_message3"
                 />
-
-        </LinearLayout>
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            >
-            <TextView
-                android:layout_width="0px"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Paired devices"
-                />
-            <TextView
-                android:layout_width="0px"
-                android:layout_height="wrap_content"
-                android:layout_weight="2"
-                android:text=""
-                android:id="@+id/text_paired_devices"
-                android:scrollbars="vertical"
-                />
-
         </LinearLayout>
     </LinearLayout>
 
@@ -107,17 +139,15 @@
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:text="Connect Bluetooth"
+            android:text="Choose Device"
             android:textSize="12sp" />
-
         <Button
-            android:id="@+id/button_refresh_bluetooth"
+            android:id="@+id/button_start_connection"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:text="Refresh Bluetooth"
+            android:text="Start Connection"
             android:textSize="12sp" />
-
         <Button
             android:id="@+id/button_send_message"
             android:layout_width="0dp"

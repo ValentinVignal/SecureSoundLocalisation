@@ -3,10 +3,10 @@ package com.e.sslapp.v4
 import android.Manifest
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothSocket
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.AudioFormat
-import android.media.MediaRecorder
 import android.os.Bundle
 import android.os.Environment
 import android.widget.Toast
@@ -17,23 +17,15 @@ import android.media.AudioRecord
 import android.view.Menu
 import android.view.MenuItem
 import androidx.appcompat.widget.Toolbar
-import com.jjoe64.graphview.series.DataPoint
-import com.jjoe64.graphview.series.LineGraphSeries
 import java.util.*
 import kotlin.collections.ArrayList
 import java.io.*
-import java.lang.Math.*
 import android.util.Log
 import com.e.sslapp.v1.Activity1Manual
 import com.e.sslapp.v2.Activity2Manual
 import com.e.sslapp.v3.Activity3Handler
 import com.e.sslapp.R
-import java.util.Calendar
-import android.os.Handler
-import android.widget.ArrayAdapter
-import kotlinx.android.synthetic.main.activity3_handler.*
 import kotlinx.android.synthetic.main.activity4_bluetooth.*
-import com.e.sslapp.customElements.BluetoothClient
 
 
 class Activity4Bluetooth : AppCompatActivity() {
@@ -103,11 +95,13 @@ class Activity4Bluetooth : AppCompatActivity() {
 
     // ---------- Bluetooth ----------
     private var bluetoothAdapter: BluetoothAdapter? = null
-    private var arrayListBluetoothDevices: ArrayList<BluetoothDevice>? = null
-    private var arrayListPaired: ArrayList<String>? = null
-    private var arrayListPairedBluetoothDevices: ArrayList<BluetoothDevice>? = null
-
     private var connectedBluetoothDevice: BluetoothDevice? = null
+    private var uuid: UUID = UUID.fromString("ae465fd9-2d3b-a4c6-4385-ea69b4c1e23c")
+    private var socket: BluetoothSocket? = null
+    private var inputStream: InputStream? = null
+    private var outputStream: OutputStream? = null
+
+    private var connected: Boolean = false
 
     // ------------------------------------------------------------
     //                           Methods
@@ -150,24 +144,28 @@ class Activity4Bluetooth : AppCompatActivity() {
             sendMessage()
         }
 
-        button_refresh_bluetooth.setOnClickListener {
-            if (debug) {
-                Log.d(
-                    "button refresh bluetooth on click listener",
-                    "Button RefreshBluetooth pressed"
-                )
-            }
-            refreshBluetooth()
-        }
-
         button_connect_bluetooth.setOnClickListener{
             changeActivity(Activity4ConnectBluetooth::class.java)
+        }
+
+        button_start_connection.setOnClickListener{
+            if(connected){
+                button_start_connection.text = "Start connection"
+                connected = false
+                stopConnection()
+            } else {
+                button_start_connection.text = "Stop connection"
+                connected = true
+                startConnection()
+            }
         }
 
         // If no bluetooth device connected, ask for connection:
         if(connectedBluetoothDevice == null){
             changeActivity(Activity4ConnectBluetooth::class.java)
         }
+
+        text_paired_device.text = "${connectedBluetoothDevice?.name} - ${connectedBluetoothDevice?.address}"
     }
 
     private fun getAllIntent() {
@@ -217,10 +215,6 @@ class Activity4Bluetooth : AppCompatActivity() {
 
     private fun initBluetooth(){
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
-        arrayListPaired = ArrayList<String>()
-        arrayListBluetoothDevices = ArrayList<BluetoothDevice>()
-        arrayListPairedBluetoothDevices = ArrayList<BluetoothDevice>()
-        refreshBluetooth()
     }
 
     // ------------------------------ Menu ------------------------------
@@ -365,43 +359,53 @@ class Activity4Bluetooth : AppCompatActivity() {
 
 
     // ------------------------------ Handle button ------------------------------
+    private fun startConnection(){
+        socket = connectedBluetoothDevice?.createInsecureRfcommSocketToServiceRecord(uuid)
+        inputStream = socket?.inputStream
+        outputStream = socket?.outputStream
+        Toast.makeText(this, "Connection started", Toast.LENGTH_SHORT).show()
 
-    private fun refreshBluetooth() {
-        arrayListPaired = ArrayList<String>()
-        arrayListPairedBluetoothDevices = ArrayList<BluetoothDevice>()
-        val pairedDevice: Set<BluetoothDevice>? = bluetoothAdapter?.bondedDevices
-        pairedDevice?.let{
-            if (it.isNotEmpty()) {
-                for (device in pairedDevice) {
-                    arrayListPaired?.add("${device.name} - ${device.address}")
-                    arrayListPairedBluetoothDevices?.add(device)
-                }
-            }
-            if(debug){
-                Log.d("refreshBluetooth", "array List paired : $arrayListPaired")
-            }
-        }
-        showArrayListPaired()
-        Toast.makeText(this, "Paired Bluetooth devices refreshed", Toast.LENGTH_SHORT).show()
+        // -----------------------
+
+        text_received_message1.text = readMessage()
+        text_received_message2.text = readMessage()
     }
 
-    private fun showArrayListPaired(){
-        var s: String = ""
-        arrayListPaired?.let{
-            for(m in it){
-                s += m + ",\n"
-            }
-        }
-        text_paired_devices.text = s
+    private fun stopConnection(){
+        outputStream?.close()
+        inputStream?.close()
+        socket?.close()
+        outputStream = null
+        inputStream = null
+        socket = null
+        Toast.makeText(this, "Connection stopped", Toast.LENGTH_SHORT).show()
     }
 
+    private fun readMessage(): String{
+        try{
+            val available = inputStream?.available()
+            available?.let{
+                val bytes = ByteArray(available)
+                Log.i("get message 1", "Reading")
+                inputStream?.read(bytes, 0, available)
+                val text = String(bytes)
+                Log.i("get message 1", "Message received")
+                Log.i("get message 1", "text: $text")
+                return text
+            }
+        } catch (e: java.lang.Exception){
+            Log.e("get message 1", "Cannot read data", e)
+            return e.toString()
+        }
+        return ""
+    }
 
     private fun sendMessage() {
-        Toast.makeText(this, "Message sent", Toast.LENGTH_SHORT).show()
         if (debug) {
             Log.d("sendMessage", "Button send massage pressed")
         }
         // Get the device
+        /*
         var device: BluetoothDevice? = null
         arrayListPairedBluetoothDevices?.let{
             for(d in it){
@@ -413,6 +417,25 @@ class Activity4Bluetooth : AppCompatActivity() {
         device?.let {
             BluetoothClient(it).start()
         }
+        */
+
+        /*
+        connectedBluetoothDevice?.let{
+            BluetoothClient(it).start()
+        }
+        */
+
+        try {
+            outputStream?.write(form_message_to_send.text.toString().toByteArray())
+            outputStream?.flush()
+            Log.i("send message", "Sent")
+        } catch (e: Exception) {
+            Log.e("send Message", "Cannot send", e)
+        }
+
+        text_received_message3.text = readMessage()
+
+        Toast.makeText(this, "Message sent", Toast.LENGTH_SHORT).show()
     }
 
 
