@@ -27,7 +27,6 @@ import com.e.sslapp.v1.Activity1Manual
 import com.e.sslapp.v2.Activity2Manual
 import com.e.sslapp.v3.Activity3Handler
 import com.e.sslapp.R
-import kotlinx.android.synthetic.main.activity4_bluetooth.text_paired_devices
 import kotlinx.android.synthetic.main.activity4_connect_bluetooth.*
 
 // import com.e.sslapp.customElements.BluetoothReceiver
@@ -189,9 +188,7 @@ class Activity4ConnectBluetooth : AppCompatActivity() {
                 connectedBluetoothDevice = it[position]
                 activityBack()
             }
-
         }
-
     }
 
     private fun getAllIntent() {
