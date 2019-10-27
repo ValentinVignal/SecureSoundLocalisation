@@ -10,61 +10,87 @@
     <include
         android:id="@+id/activity_toolbar"
         layout="@layout/my_toolbar" />
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text="Choose a device to connect to"
+        android:gravity="center"
+        android:textColor="@color/colorPrimary"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        android:layout_below="@+id/activity_toolbar"
+        android:id="@+id/text_view_state"
+        />
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:id="@+id/container_form"
         android:orientation="vertical"
-        android:layout_below="@+id/activity_toolbar"
-        android:layout_above="@+id/text_view_state"
+        android:layout_below="@+id/text_view_state"
+        android:layout_above="@+id/container_button"
         >
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0px"
+            android:orientation="vertical"
             android:layout_weight="1"
-            android:text="Choose a device to connect to"
-            android:layout_gravity="center"
-            android:textColor="@color/colorPrimary"
-            android:textSize="15sp"
-            android:textStyle="bold"
-            />
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
             >
             <TextView
-                android:layout_width="0px"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="2"
-                android:text=""
-                android:id="@+id/title"
-                android:scrollbars="vertical"
-                />
-
-        </LinearLayout>
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            >
-            <TextView
-                android:layout_width="0px"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
                 android:text="Paired devices"
+                android:gravity="center"
                 />
             <TextView
-                android:layout_width="0px"
-                android:layout_height="wrap_content"
-                android:layout_weight="2"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
                 android:text=""
                 android:id="@+id/text_paired_devices"
                 android:scrollbars="vertical"
+                
                 />
-
         </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:visibility="gone"
+            >
+            <TextView
+                android:layout_width="0px"
+                android:layout_height="wrap_content"
+                android:layout_weight="2"
+                android:text="Found Devices"
+                android:id="@+id/text_found_devices"
+                android:scrollbars="vertical"
+                />
+        </LinearLayout>
+    </LinearLayout>
+    <LinearLayout
+        android:id="@+id/container_button"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:layout_alignParentBottom="true"
+        android:layout_marginBottom="0dp"
+        android:orientation="horizontal">
+        <Button
+            android:id="@+id/button_refresh_paired"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:text="Refresh Paired Devices"
+            android:textSize="12sp" />
+
+        <Button
+            android:id="@+id/button_scan_nearby"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:text="Scan Devices"
+            android:visibility="gone"
+            android:textSize="12sp" />
     </LinearLayout>
 
 
