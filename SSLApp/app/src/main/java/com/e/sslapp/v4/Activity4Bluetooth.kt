@@ -165,9 +165,11 @@ class Activity4Bluetooth : AppCompatActivity() {
         }
 
         // If no bluetooth device connected, ask for connection:
+        /*
         if(connectedBluetoothDevice == null){
             changeActivity(Activity4ConnectBluetooth::class.java)
         }
+         */
     }
 
     private fun getAllIntent() {
@@ -398,9 +400,20 @@ class Activity4Bluetooth : AppCompatActivity() {
     private fun sendMessage() {
         Toast.makeText(this, "Message sent", Toast.LENGTH_SHORT).show()
         if (debug) {
-            Log.d("sentMessage", "Button send massage pressed")
+            Log.d("sendMessage", "Button send massage pressed")
         }
-        // BluetoothClient(this)
+        // Get the device
+        var device: BluetoothDevice? = null
+        arrayListPairedBluetoothDevices?.let{
+            for(d in it){
+                if(d.name == "remi-arch"){
+                    device = d
+                }
+            }
+        }
+        device?.let {
+            BluetoothClient(it).start()
+        }
     }
 
 
