@@ -165,11 +165,9 @@ class Activity4Bluetooth : AppCompatActivity() {
         }
 
         // If no bluetooth device connected, ask for connection:
-        /*
         if(connectedBluetoothDevice == null){
             changeActivity(Activity4ConnectBluetooth::class.java)
         }
-         */
     }
 
     private fun getAllIntent() {

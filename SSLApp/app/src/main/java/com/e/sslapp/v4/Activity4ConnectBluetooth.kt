@@ -9,7 +9,6 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.media.AudioFormat
-import android.media.MediaRecorder
 import android.os.Bundle
 import android.os.Environment
 import android.widget.Toast
@@ -20,24 +19,16 @@ import android.media.AudioRecord
 import android.view.Menu
 import android.view.MenuItem
 import androidx.appcompat.widget.Toolbar
-import com.jjoe64.graphview.series.DataPoint
-import com.jjoe64.graphview.series.LineGraphSeries
-import java.util.*
 import kotlin.collections.ArrayList
 import java.io.*
-import java.lang.Math.*
 import android.util.Log
 import com.e.sslapp.v1.Activity1Manual
 import com.e.sslapp.v2.Activity2Manual
 import com.e.sslapp.v3.Activity3Handler
 import com.e.sslapp.R
-import java.util.Calendar
-import android.os.Handler
-import android.os.Message
-import android.widget.ArrayAdapter
-import kotlinx.android.synthetic.main.activity3_handler.*
-import kotlinx.android.synthetic.main.activity4_bluetooth.*
-import com.e.sslapp.customElements.BluetoothClient
+import kotlinx.android.synthetic.main.activity4_bluetooth.text_paired_devices
+import kotlinx.android.synthetic.main.activity4_connect_bluetooth.*
+
 // import com.e.sslapp.customElements.BluetoothReceiver
 
 
@@ -109,13 +100,29 @@ class Activity4ConnectBluetooth : AppCompatActivity() {
 
     // ---------- Bluetooth ----------
     private var bluetoothAdapter: BluetoothAdapter? = null
-    private var arrayListBluetoothDevices: ArrayList<BluetoothDevice>? = null
+
+    // Paired
     private var arrayListPaired: ArrayList<String>? = null
     private var arrayListPairedBluetoothDevices: ArrayList<BluetoothDevice>? = null
 
-    private var connectedBluetoothDevice: BluetoothDevice? = null
+    // Found
+    private var isScanning: Boolean = false
     private var foundBluetoothDevices: ArrayList<BluetoothDevice>? = null
-    //private var bluetoothReceiver: BluetoothReceiver? = null
+    private var bluetoothReceiver: BroadcastReceiver = object: BroadcastReceiver(){
+        override fun onReceive(context: Context?, intent: Intent?) {
+            val action = intent?.action
+            if (BluetoothDevice.ACTION_FOUND == action){
+                val device = intent.getParcelableExtra<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE)
+                device?.let{
+                    foundBluetoothDevices?.add(device)
+                    showfoundBluetoothDevices()
+                }
+            }
+        }
+    }
+
+    // connected
+    private var connectedBluetoothDevice: BluetoothDevice? = null
 
 
     // ------------------------------------------------------------
@@ -153,6 +160,26 @@ class Activity4ConnectBluetooth : AppCompatActivity() {
 
         // ---------- Bluetooth ----------
         initBluetooth()
+
+        // ---------- Buttons ----------
+        button_refresh_paired.setOnClickListener{
+            refreshBluetooth()
+        }
+
+        button_scan_nearby.setOnClickListener{
+            if(isScanning){
+                isScanning = false
+                button_scan_nearby.text = "Scan Devices"
+                stopScan()
+                text_view_state.text = "Choose a device to connect to"
+            } else {
+                isScanning = true
+                button_scan_nearby.text = "Stop Scan"
+                text_view_state.text = "Scanning..."
+                makeDiscoverable()
+                startScan()
+            }
+        }
     }
 
     private fun getAllIntent() {
@@ -206,19 +233,14 @@ class Activity4ConnectBluetooth : AppCompatActivity() {
 
     private fun initBluetooth(){
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
-        arrayListPaired = ArrayList<String>()
-        arrayListBluetoothDevices = ArrayList<BluetoothDevice>()
-        arrayListPairedBluetoothDevices = ArrayList<BluetoothDevice>()
 
         // Paired devices
+        arrayListPaired = ArrayList<String>()
+        arrayListPairedBluetoothDevices = ArrayList<BluetoothDevice>()
         refreshBluetooth()
 
         // Found devices
-        /*
-        bluetoothReceiver = BluetoothReceiver()
-        makeDiscoverable()
-
-         */
+        foundBluetoothDevices = ArrayList<BluetoothDevice>()
 
     }
 
@@ -364,6 +386,7 @@ class Activity4ConnectBluetooth : AppCompatActivity() {
 
     // ------------------------------ Handle button ------------------------------
 
+    // ---------- Paired Devices ----------
     private fun refreshBluetooth() {
         arrayListPaired = ArrayList<String>()
         arrayListPairedBluetoothDevices = ArrayList<BluetoothDevice>()
@@ -393,32 +416,40 @@ class Activity4ConnectBluetooth : AppCompatActivity() {
         text_paired_devices.text = s
     }
 
-    private fun makeDiscoverable(){
-        // To make the device discoverable by the other devices through bluetooth
+    // ---------- Scan Devices ----------
+
+    private fun makeDiscoverable() {
         val discoverableIntent = Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE)
-        discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 10)
+        discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300)
         startActivity(discoverableIntent)
+        Log.i("Log", "Discoverable ")
     }
 
-    /*
-    private fun startSearching(){
-        val intentFilter = IntentFilter(BluetoothDevice.ACTION_FOUND)
-        this.registerReceiver(bluetoothReceiver, intentFilter)
+    private fun startScan(){
+        Toast.makeText(this, "Start Scan", Toast.LENGTH_SHORT).show()
+        val filter = IntentFilter(BluetoothDevice.ACTION_FOUND)
+        foundBluetoothDevices = ArrayList<BluetoothDevice>()
+        registerReceiver(bluetoothReceiver, filter)
         bluetoothAdapter?.startDiscovery()
-
     }
 
-     */
+    private fun stopScan(){
+        unregisterReceiver(bluetoothReceiver)
+        bluetoothAdapter?.cancelDiscovery()
+        Toast.makeText(this, "Scan stopped", Toast.LENGTH_SHORT).show()
+    }
 
-
-
-    private fun sendMessage() {
-        Toast.makeText(this, "Message sent", Toast.LENGTH_SHORT).show()
-        if (debug) {
-            Log.d("sentMessage", "Button send massage pressed")
+    private fun showfoundBluetoothDevices(){
+        var s: String = ""
+        foundBluetoothDevices?.let{
+            for(d in it){
+                s += "${d.name} - ${d.address},\n"
+            }
         }
-        // BluetoothClient(this)
+        text_found_devices.text = s
+        Log.d("showFound", "$s $foundBluetoothDevices")
     }
+
 
 
 }
