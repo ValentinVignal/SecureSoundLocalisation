@@ -29,7 +29,7 @@
                 android:layout_width="0px"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Paired Device"
+                android:text="Chosen Device"
                 />
             <TextView
                 android:layout_width="0px"
@@ -47,13 +47,13 @@
                 android:layout_width="0px"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Received message 1"
+                android:text="Trigger Message"
                 />
             <TextView
                 android:layout_width="0px"
                 android:layout_height="wrap_content"
                 android:layout_weight="4"
-                android:id="@+id/text_received_message1"
+                android:id="@+id/text_received_message_trigger"
                 />
         </LinearLayout>
         <LinearLayout
@@ -65,13 +65,31 @@
                 android:layout_width="0px"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Received message 2"
+                android:text="Start"
                 />
             <TextView
                 android:layout_width="0px"
                 android:layout_height="wrap_content"
                 android:layout_weight="4"
-                android:id="@+id/text_received_message2"
+                android:id="@+id/text_received_message_trigger_start"
+                />
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            >
+            <TextView
+                android:layout_width="0px"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Duration"
+                />
+            <TextView
+                android:layout_width="0px"
+                android:layout_height="wrap_content"
+                android:layout_weight="4"
+                android:id="@+id/text_received_message_trigger_duration"
                 />
         </LinearLayout>
         <LinearLayout
@@ -104,13 +122,31 @@
                 android:layout_width="0px"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Received message 3"
+                android:text="Answer Message"
                 />
             <TextView
                 android:layout_width="0px"
                 android:layout_height="wrap_content"
                 android:layout_weight="4"
-                android:id="@+id/text_received_message3"
+                android:id="@+id/text_received_message_answer"
+                />
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            >
+            <TextView
+                android:layout_width="0px"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Accepted"
+                />
+            <TextView
+                android:layout_width="0px"
+                android:layout_height="wrap_content"
+                android:layout_weight="4"
+                android:id="@+id/text_received_message_answer_accepted"
                 />
         </LinearLayout>
     </LinearLayout>
