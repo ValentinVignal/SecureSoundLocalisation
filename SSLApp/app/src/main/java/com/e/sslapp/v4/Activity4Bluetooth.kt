@@ -462,10 +462,7 @@ class Activity4Bluetooth : AppCompatActivity() {
             text_received_message_answer.text = e.toString()
             text_received_message_answer_accepted.text = e.toString()
         }
-
     }
-
-
 }
 
 
