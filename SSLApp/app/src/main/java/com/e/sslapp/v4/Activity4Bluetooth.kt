@@ -26,6 +26,11 @@ import com.e.sslapp.v2.Activity2Manual
 import com.e.sslapp.v3.Activity3Handler
 import com.e.sslapp.R
 import kotlinx.android.synthetic.main.activity4_bluetooth.*
+import com.beust.klaxon.*
+import com.e.sslapp.customElements.BluetoothTrigger
+import com.e.sslapp.customElements.BluetoothRecord
+import com.e.sslapp.customElements.BluetoothAnswer
+
 
 
 class Activity4Bluetooth : AppCompatActivity() {
@@ -367,8 +372,18 @@ class Activity4Bluetooth : AppCompatActivity() {
 
         // -----------------------
 
-        text_received_message1.text = readMessage()
-        text_received_message2.text = readMessage()
+        try {
+            val message = readMessage()
+            text_received_message_trigger.text = message
+            val messageJSON = Klaxon().parse<BluetoothTrigger>(message)
+            text_received_message_trigger_start.text = messageJSON?.start.toString()
+            text_received_message_trigger_duration.text = messageJSON?.duration.toString()
+        } catch (e: KlaxonException){
+            Log.e("sendMessage", "Cannot parse the data", e)
+            text_received_message_trigger.text = e.toString()
+            text_received_message_trigger_start.text = e.toString()
+            text_received_message_trigger_duration.text = e.toString()
+        }
     }
 
     private fun stopConnection(){
@@ -386,15 +401,18 @@ class Activity4Bluetooth : AppCompatActivity() {
             val available = inputStream?.available()
             available?.let{
                 val bytes = ByteArray(available)
-                Log.i("get message 1", "Reading")
+                Log.i("get message", "Reading")
                 inputStream?.read(bytes, 0, available)
                 val text = String(bytes)
-                Log.i("get message 1", "Message received")
-                Log.i("get message 1", "text: $text")
+                Log.i("get message", "Message received")
+                Log.i("get message", "text: $text")
                 return text
             }
         } catch (e: java.lang.Exception){
-            Log.e("get message 1", "Cannot read data", e)
+            Log.e("get message", "Cannot read data", e)
+            return e.toString()
+        } catch (e: java.lang.NullPointerException){
+            Log.e("get message", "Input Stream not available", e)
             return e.toString()
         }
         return ""
@@ -432,10 +450,19 @@ class Activity4Bluetooth : AppCompatActivity() {
         } catch (e: Exception) {
             Log.e("send Message", "Cannot send", e)
         }
-
-        text_received_message3.text = readMessage()
-
         Toast.makeText(this, "Message sent", Toast.LENGTH_SHORT).show()
+
+        try{
+            val message = readMessage()
+            text_received_message_answer.text = message
+            val messageJSON = Klaxon().parse<BluetoothAnswer>(message)
+            text_received_message_answer_accepted.text = messageJSON?.accepted.toString()
+        } catch (e: KlaxonException){
+            Log.e("sendMessage", "Cannot parse the data", e)
+            text_received_message_answer.text = e.toString()
+            text_received_message_answer_accepted.text = e.toString()
+        }
+
     }
 
 

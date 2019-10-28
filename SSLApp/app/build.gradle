@@ -39,5 +39,6 @@ dependencies {
     implementation 'com.jjoe64:graphview:4.2.1'
     implementation 'com.google.code.gson:gson:2.8.5'
     implementation 'com.android.support:appcompat-v7:+'
+    implementation 'com.beust:klaxon:5.0.1'
 }
 
