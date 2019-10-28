@@ -265,8 +265,16 @@ class Activity4ConnectBluetooth : AppCompatActivity() {
 
     private fun initiateMenuItems(menu: Menu?) {
         // ----- Activities -----
-        val activity = menu?.findItem(R.id.activity_bluetooth)
-        activity?.title = "-> Bluetooth <-"
+        when (previousActivity){
+            "Bluetooth" -> {
+                val activity = menu?.findItem(R.id.activity_bluetooth)
+                activity?.title = "-> Bluetooth <-"
+            }
+            "Record" -> {
+                val activity = menu?.findItem(R.id.activity_record)
+                activity?.title = "-> Record <-"
+            }
+        }
         // ----- Settings -----
         val settingDebug = menu?.findItem(R.id.settings_debug)
         settingDebug?.title = if (debug) "Debug: ON" else "Debug: OFF"
@@ -299,6 +307,14 @@ class Activity4ConnectBluetooth : AppCompatActivity() {
                 if (debug) {
                     Log.d("onOptionsItemSelected", "activity bluetooth pressed")
                 }
+                changeActivity(Activity4Bluetooth::class.java)
+                return true
+            }
+            R.id.activity_record -> {
+                if (debug) {
+                    Log.d("onOptionsItemSelected", "activity record pressed")
+                }
+                changeActivity(Activity4Record::class.java)
                 return true
             }
             // -------------------- Settings Menu --------------------
@@ -369,6 +385,9 @@ class Activity4ConnectBluetooth : AppCompatActivity() {
             }
             "Bluetooth" -> {
                 changeActivity(Activity4Bluetooth::class.java)
+            }
+            "Record" -> {
+                changeActivity(Activity4Record::class.java)
             }
         }
 

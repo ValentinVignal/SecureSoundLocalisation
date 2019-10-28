@@ -24,6 +24,11 @@
                 android:orderInCategory="300"
                 android:title="Bluetooth"
                 app:showAsAction="never" />
+            <item
+                android:id="@+id/activity_record"
+                android:orderInCategory="300"
+                android:title="Record"
+                app:showAsAction="never" />
         </menu>
     </item>
     <item

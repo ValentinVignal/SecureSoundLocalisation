@@ -18,13 +18,17 @@
         >
         <!--        Version 4        -->
         <activity
-            android:name="com.e.sslapp.v4.Activity4Bluetooth"
+            android:name="com.e.sslapp.v4.Activity4Record"
             android:label="@string/app_name" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+        </activity>
+        <activity
+            android:name="com.e.sslapp.v4.Activity4Bluetooth"
+            android:label="@string/app_name" >
         </activity>
         <activity
             android:name="com.e.sslapp.v4.Activity4ConnectBluetooth"
