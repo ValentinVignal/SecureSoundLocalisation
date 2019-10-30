@@ -44,7 +44,7 @@ class Activity4Manual : AppCompatActivity() {
     // ---------- Debug options ----------
     companion object {
     }
-    var debug:Boolean = false // Use to debug (and for example print in the terminal)
+    var debug:Boolean = true // Use to debug (and for example print in the terminal)
     private var saveRecord: Boolean = false
     private var mSaveRecord: Boolean = false // Save the state of the save_record switch at the end of the recording
 
@@ -215,7 +215,21 @@ class Activity4Manual : AppCompatActivity() {
                 if(debug){
                     Log.d("onOptionsItemSelected", "activity handler pressed")
                 }
-                changeActivity(Activity3Handler::class.java)
+                changeActivity(Activity4Handler::class.java)
+                return true
+            }
+            R.id.activity_bluetooth-> {
+                if (debug) {
+                    Log.d("onOptionsItemSelected", "activity bluetooth pressed")
+                }
+                changeActivity(Activity4Bluetooth::class.java)
+                return true
+            }
+            R.id.activity_record -> {
+                if (debug) {
+                    Log.d("onOptionsItemSelected", "activity record pressed")
+                }
+                changeActivity(Activity4Record::class.java)
                 return true
             }
             // -------------------- Settings Menu --------------------

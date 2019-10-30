@@ -11,13 +11,23 @@
         <menu>
             <item
                 android:id="@+id/activity_manual"
-                android:orderInCategory="1"
+                android:orderInCategory="100"
                 android:title="Manual"
                 app:showAsAction="never"/>
             <item
                 android:id="@+id/activity_handler"
-                android:orderInCategory="2"
+                android:orderInCategory="200"
                 android:title="Handler"
+                app:showAsAction="never" />
+            <item
+                android:id="@+id/activity_bluetooth"
+                android:orderInCategory="300"
+                android:title="Bluetooth"
+                app:showAsAction="never" />
+            <item
+                android:id="@+id/activity_record"
+                android:orderInCategory="300"
+                android:title="Record"
                 app:showAsAction="never" />
         </menu>
     </item>

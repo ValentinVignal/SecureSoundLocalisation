@@ -2,6 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.e.sslapp">
 
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     <uses-permission android:name="android.permission.WAKE_LOCK" />
@@ -16,13 +18,25 @@
         >
         <!--        Version 4        -->
         <activity
-            android:name="com.e.sslapp.v4.Activity4Handler"
+            android:name="com.e.sslapp.v4.Activity4Record"
             android:label="@string/app_name" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+        </activity>
+        <activity
+            android:name="com.e.sslapp.v4.Activity4Bluetooth"
+            android:label="@string/app_name" >
+        </activity>
+        <activity
+            android:name="com.e.sslapp.v4.Activity4ConnectBluetooth"
+            android:label="@string/app_name" >
+        </activity>
+        <activity
+            android:name="com.e.sslapp.v4.Activity4Handler"
+            android:label="@string/app_name" >
         </activity>
         <activity
             android:name="com.e.sslapp.v4.Activity4Manual"

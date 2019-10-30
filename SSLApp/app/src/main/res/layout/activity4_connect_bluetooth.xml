@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    tools:context=".v4.Activity4ConnectBluetooth"
+    android:id="@+id/global_layout"
+    >
+
+    <include
+        android:id="@+id/activity_toolbar"
+        layout="@layout/my_toolbar" />
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text="Choose a device to connect to"
+        android:gravity="center"
+        android:textColor="@color/colorPrimary"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        android:layout_below="@+id/activity_toolbar"
+        android:id="@+id/text_view_state"
+        />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/container_form"
+        android:orientation="vertical"
+        android:layout_below="@+id/text_view_state"
+        android:layout_above="@+id/container_button"
+        >
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0px"
+            android:orientation="vertical"
+            android:layout_weight="1"
+            >
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Paired devices"
+                android:gravity="center"
+                android:visibility="gone"
+                />
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text=""
+                android:id="@+id/text_paired_devices"
+                android:scrollbars="vertical"
+                android:visibility="gone"
+                />
+            <ListView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:id="@+id/listview_paired_devices"
+
+                >
+
+            </ListView>
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:visibility="gone"
+            >
+            <TextView
+                android:layout_width="0px"
+                android:layout_height="wrap_content"
+                android:layout_weight="2"
+                android:text="Found Devices"
+                android:id="@+id/text_found_devices"
+                android:scrollbars="vertical"
+                />
+        </LinearLayout>
+    </LinearLayout>
+    <LinearLayout
+        android:id="@+id/container_button"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:layout_alignParentBottom="true"
+        android:layout_marginBottom="0dp"
+        android:orientation="horizontal">
+        <Button
+            android:id="@+id/button_refresh_paired"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:text="Refresh Paired Devices"
+            android:textSize="12sp" />
+
+        <Button
+            android:id="@+id/button_scan_nearby"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:text="Scan Devices"
+            android:visibility="gone"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+
+</RelativeLayout>

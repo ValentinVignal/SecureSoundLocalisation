@@ -1,13 +1,16 @@
 package com.e.sslapp.v4
 
 import android.Manifest
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothDevice
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.media.AudioFormat
-import android.media.MediaRecorder
 import android.os.Bundle
 import android.os.Environment
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -15,29 +18,21 @@ import android.media.AudioRecord
 import android.view.Menu
 import android.view.MenuItem
 import androidx.appcompat.widget.Toolbar
-import com.jjoe64.graphview.series.DataPoint
-import com.jjoe64.graphview.series.LineGraphSeries
-import java.util.*
 import kotlin.collections.ArrayList
 import java.io.*
-import java.lang.Math.*
 import android.util.Log
+import android.view.View
+import android.widget.*
 import com.e.sslapp.v1.Activity1Manual
 import com.e.sslapp.v2.Activity2Manual
-import com.e.sslapp.v3.Activity3Manual
 import com.e.sslapp.v3.Activity3Handler
 import com.e.sslapp.R
-import java.util.Calendar
-import android.os.Handler
-import android.view.View
-import android.widget.Adapter
-import android.widget.AdapterView
-import kotlinx.android.synthetic.main.activity3_handler.*
-import kotlinx.android.synthetic.main.activity3_handler.text_view_state
 import kotlinx.android.synthetic.main.activity4_connect_bluetooth.*
 
+// import com.e.sslapp.customElements.BluetoothReceiver
 
-class Activity4Handler : AppCompatActivity() {
+
+class Activity4ConnectBluetooth : AppCompatActivity() {
 
     // ------------------------------------------------------------
     //                           Static object
@@ -66,9 +61,12 @@ class Activity4Handler : AppCompatActivity() {
         }
     }
 
+
     // ------------------------------------------------------------
     //                           Attributs
     // ------------------------------------------------------------
+
+    private var previousActivity: String? = "Bluetooth"
 
     // ---------- Toolbar ----------
     private var toolbar: Toolbar? = null
@@ -102,6 +100,33 @@ class Activity4Handler : AppCompatActivity() {
         File(Environment.getExternalStorageDirectory().absolutePath + "/SSL")       // Diretory where it is gonna be saved
     private var recordedSound: ArrayList<Short>? = null     // The sound recorder by the phone
 
+    // ---------- Bluetooth ----------
+    private var bluetoothAdapter: BluetoothAdapter? = null
+
+    // Paired
+    private var arrayListPaired: ArrayList<String> = ArrayList<String>()
+    private var arrayAdapterPaired: ArrayAdapter<String>? = null
+    private var arrayListPairedBluetoothDevices: ArrayList<BluetoothDevice>? = null
+
+    // Found
+    private var isScanning: Boolean = false
+    private var foundBluetoothDevices: ArrayList<BluetoothDevice>? = null
+    private var bluetoothReceiver: BroadcastReceiver = object: BroadcastReceiver(){
+        override fun onReceive(context: Context?, intent: Intent?) {
+            val action = intent?.action
+            if (BluetoothDevice.ACTION_FOUND == action){
+                val device = intent.getParcelableExtra<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE)
+                device?.let{
+                    foundBluetoothDevices?.add(device)
+                    showfoundBluetoothDevices()
+                }
+            }
+        }
+    }
+
+    // connected
+    private var connectedBluetoothDevice: BluetoothDevice? = null
+
 
     // ------------------------------------------------------------
     //                           Methods
@@ -118,7 +143,7 @@ class Activity4Handler : AppCompatActivity() {
         changeTheme(debug, onCreate = true)
 
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity4_handler)
+        setContentView(R.layout.activity4_connect_bluetooth)
 
         // ---------- Handle Toolbar ----------
         toolbar = findViewById(R.id.activity_toolbar)
@@ -136,20 +161,42 @@ class Activity4Handler : AppCompatActivity() {
             rootDirectory.mkdirs()
         }
 
-        // -------------------- Call when Start button is pressed --------------------
-        button_start_recording.setOnClickListener {
-            if (checkPermission()) {
-                // We can start the recording
-                startRecording()
-            }
+        // ---------- Bluetooth ----------
+        initBluetooth()
+
+        // ---------- Buttons ----------
+        button_refresh_paired.setOnClickListener{
+            refreshBluetooth()
         }
 
+        button_scan_nearby.setOnClickListener{
+            if(isScanning){
+                isScanning = false
+                button_scan_nearby.text = "Scan Devices"
+                stopScan()
+                text_view_state.text = "Choose a device to connect to"
+            } else {
+                isScanning = true
+                button_scan_nearby.text = "Stop Scan"
+                text_view_state.text = "Scanning..."
+                makeDiscoverable()
+                startScan()
+            }
+        }
+        listview_paired_devices.setOnItemClickListener { parent, view, position, id ->
+            arrayListPairedBluetoothDevices?.let{
+                connectedBluetoothDevice = it[position]
+                activityBack()
+            }
+        }
     }
 
-    private fun getAllIntent(){
+    private fun getAllIntent() {
         val intent = this.intent
         debug = intent.getBooleanExtra("debug", debug)
         saveRecord = intent.getBooleanExtra("saveRecord", saveRecord)
+        //connectedBluetoothDevice = intent.getParcelableExtra("connectedBluetoothDevice")
+        previousActivity = intent.getStringExtra("previousActivity")
     }
 
     private fun checkPermission(): Boolean {
@@ -159,13 +206,21 @@ class Activity4Handler : AppCompatActivity() {
         ) != PackageManager.PERMISSION_GRANTED || ContextCompat.checkSelfPermission(
             this,
             Manifest.permission.WRITE_EXTERNAL_STORAGE
+        ) != PackageManager.PERMISSION_GRANTED || ContextCompat.checkSelfPermission(
+            this,
+            Manifest.permission.BLUETOOTH
+        ) != PackageManager.PERMISSION_GRANTED || ContextCompat.checkSelfPermission(
+            this,
+            Manifest.permission.BLUETOOTH_ADMIN
         ) != PackageManager.PERMISSION_GRANTED
                 )
         if (isNotChecked) {
             val permissions = arrayOf(
                 Manifest.permission.RECORD_AUDIO,
                 Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                Manifest.permission.READ_EXTERNAL_STORAGE
+                Manifest.permission.READ_EXTERNAL_STORAGE,
+                Manifest.permission.BLUETOOTH,
+                Manifest.permission.BLUETOOTH_ADMIN
             )
             ActivityCompat.requestPermissions(this, permissions, 0)
         }
@@ -182,8 +237,21 @@ class Activity4Handler : AppCompatActivity() {
             setTheme(R.style.LightTheme)
         }
         if (!onCreate) {      // To avoid infinite loops
-            changeActivity(Activity4Handler::class.java)
+            changeActivity(Activity4ConnectBluetooth::class.java)
         }
+    }
+
+    private fun initBluetooth(){
+        bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
+
+        // Paired devices
+        resetArrayListPaired()
+        arrayListPairedBluetoothDevices = ArrayList<BluetoothDevice>()
+        refreshBluetooth()
+
+        // Found devices
+        foundBluetoothDevices = ArrayList<BluetoothDevice>()
+
     }
 
     // ------------------------------ Menu ------------------------------
@@ -195,10 +263,18 @@ class Activity4Handler : AppCompatActivity() {
         return super.onCreateOptionsMenu(menu)
     }
 
-    private fun initiateMenuItems(menu: Menu?){
+    private fun initiateMenuItems(menu: Menu?) {
         // ----- Activities -----
-        val activity = menu?.findItem(R.id.activity_handler)
-        activity?.title = "-> Handler <-"
+        when (previousActivity){
+            "Bluetooth" -> {
+                val activity = menu?.findItem(R.id.activity_bluetooth)
+                activity?.title = "-> Bluetooth <-"
+            }
+            "Record" -> {
+                val activity = menu?.findItem(R.id.activity_record)
+                activity?.title = "-> Record <-"
+            }
+        }
         // ----- Settings -----
         val settingDebug = menu?.findItem(R.id.settings_debug)
         settingDebug?.title = if (debug) "Debug: ON" else "Debug: OFF"
@@ -217,10 +293,6 @@ class Activity4Handler : AppCompatActivity() {
                 if (debug) {
                     Log.d("onOptionsItemSelected", "activity manual pressed")
                 }
-                /*
-                val intent = Intent(this, Activity3Manual::class.java)
-                startActivity(intent)
-                 */
                 changeActivity(Activity4Manual::class.java)
                 return true
             }
@@ -228,9 +300,10 @@ class Activity4Handler : AppCompatActivity() {
                 if (debug) {
                     Log.d("onOptionsItemSelected", "activity handler pressed")
                 }
+                changeActivity(Activity4Handler::class.java)
                 return true
             }
-            R.id.activity_bluetooth-> {
+            R.id.activity_bluetooth -> {
                 if (debug) {
                     Log.d("onOptionsItemSelected", "activity bluetooth pressed")
                 }
@@ -258,14 +331,14 @@ class Activity4Handler : AppCompatActivity() {
                 return true
             }
             R.id.settings_save_record -> {
-                if(saveRecord){
+                if (saveRecord) {
                     saveRecord = false
                     item.title = "Save Record: OFF"
                 } else {
                     saveRecord = true
                     item.title = "Save Record: ON"
                 }
-                if(debug){
+                if (debug) {
                     Log.d("onOptionItemSelected", "setting_save_record_pressed")
                 }
             }
@@ -286,7 +359,7 @@ class Activity4Handler : AppCompatActivity() {
                 return true
             }
             R.id.version_3_0 -> {
-                if(debug){
+                if (debug) {
                     println("v3 pressed")
                 }
                 changeActivity(Activity3Handler::class.java)
@@ -302,12 +375,31 @@ class Activity4Handler : AppCompatActivity() {
         return super.onOptionsItemSelected(item)
     }
 
+    private fun activityBack(){
+        when(previousActivity){
+            "Manual" -> {
+                changeActivity(Activity4Manual::class.java)
+            }
+            "Handler" -> {
+                changeActivity(Activity4Handler::class.java)
+            }
+            "Bluetooth" -> {
+                changeActivity(Activity4Bluetooth::class.java)
+            }
+            "Record" -> {
+                changeActivity(Activity4Record::class.java)
+            }
+        }
 
-    private fun changeActivity(activity: Class<*>){
+    }
+
+    private fun changeActivity(activity: Class<*>) {
         val intent = Intent(this, activity)
         // ----- Put Extra -----
         intent.putExtra("debug", debug)     // Debug value
         intent.putExtra("saveRecord", saveRecord)
+        intent.putExtra("connectedBluetoothDevice", connectedBluetoothDevice)
+        intent.putExtra("previousActivity", "ConnectBlueTooth")
         // ----- Start activity -----
         startActivity(intent)
     }
@@ -336,189 +428,85 @@ class Activity4Handler : AppCompatActivity() {
         return (list as List<T>).toTypedArray()
     }
 
-    // ------------------------------ Start Recording ------------------------------
 
-    private fun startRecording() {
-        if (debug) {
-            // val currentDate = LocalDateTime.now()
-            // var milliseconds = currentDate.getTime()
-            val currentTime = Calendar.getInstance().timeInMillis
-            Log.d("startRecording", "Button start pressed at $currentTime")
-        }
-        if (!isRecording) {
-            val startOffset = floor(form_offset.text.toString().toDouble() * 1000).toLong()
-            val startTime = Calendar.getInstance().timeInMillis + startOffset
-            val duration = floor(form_duration.text.toString().toDouble() * 1000).toLong()
-            val stopTime = startTime + duration
-            if (debug) {
-                Log.d(
-                    "startRecording",
-                    "offset : $startOffset - startTime : $startTime - duration : $duration - stopTime : $stopTime"
-                )
-            }
-            try {
-                prepareRecorder()
-                recorder?.let { r ->
-                    /*
-                    recordingThread =
-                        Thread(Runnable { writeAudioDataToFile() }, "AudioRecorder Thread")
-                    r.startRecording()
-                    recordingThread?.start()
-                     */
-                    val handler = Handler()
-                    r.startRecording()
-                    handler.postDelayed({ writeAudioDataToFile(stopTime) }, startOffset)
-                }
+    // ------------------------------ Handle button ------------------------------
 
-            } catch (e: IllegalStateException) {
-                e.printStackTrace()
-            } catch (e: IOException) {
-                e.printStackTrace()
-            }
-        } else {
-            Toast.makeText(this, "You are already recording", Toast.LENGTH_SHORT).show()
-
-        }
+    // ---------- Paired Devices ----------
+    private fun resetArrayListPaired(){
+        arrayListPaired = ArrayList<String>()
+        arrayAdapterPaired = ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, arrayListPaired)
+        val listViewPaired = findViewById<ListView>(R.id.listview_paired_devices)
+        listViewPaired.adapter = arrayAdapterPaired
     }
 
-    private fun prepareRecorder() {
-        recordedSound = ArrayList<Short>()      // Reset the recorded Sound
-        isRecording = true
-        Toast.makeText(this, "Recording started!", Toast.LENGTH_SHORT).show()
-        text_view_state.text = "Recording..."
-        recorder = AudioRecord(
-            MediaRecorder.AudioSource.MIC,
-            recorderSampleRate, recorderChannels,
-            recorderAudioEncoding, bufferElements2Rec * bytesPerElement
-        )
-    }
-
-    private fun writeAudioDataToFile(stopDate: Long) {
-        // Write the output audio in byte
-        if (debug) {
-            val currentTime = Calendar.getInstance().timeInMillis
-            Log.d("writeAudioDataToFile", "start recording at $currentTime")
-        }
-
-        val sData = ShortArray(bufferElements2Rec)
-
-        if (debug) {
-            val currentTime = Calendar.getInstance().timeInMillis
-            Log.d("writeAudioDataToFile", "Just before while at $currentTime")
-        }
-        while (stopDate > Calendar.getInstance().timeInMillis) {
-            // gets the voice output from microphone to byte format
-
-            recorder?.read(sData, 0, bufferElements2Rec)
-            // val iData: IntArray = IntArray(sData.size){ sData[it].toInt() }
-            sData.forEach { recordedSound?.add(it) }
-            if (debug) {
-                println(
-                    "Short writing to file${Arrays.toString(sData.sliceArray(1..10))}..." +
-                            "${sData.takeLast(10)} -- size : ${sData.size}"
-                )
-                println("Size of ArrayList: ${recordedSound?.size} -- ${recordedSound?.takeLast(10)}")
-            }
-        }
-        if (debug) {
-            val currentTime = Calendar.getInstance().timeInMillis
-            Log.d("writeAudioDataToFile", "stop recording at $currentTime")
-        }
-        stopRecording()
-    }
-
-    // ------------------------------ Stop Recording ------------------------------
-
-    private fun stopRecording() {
-        // stops the recording activity
-        if (debug) {
-            val currentTime = Calendar.getInstance().timeInMillis
-            Log.d("stopRecording", "In function at time $currentTime")
-        }
-        if (isRecording) {
-            isRecording = false
-            if (null != recorder) {
-                isRecording = false
-                recorder?.let { r ->
-                    r.stop()
-                    r.release()
-                }
-                recorder = null
-                recordingThread = null
-                if (mSaveRecord) {
-                    Toast.makeText(this, "Recording saved in $recordPath", Toast.LENGTH_SHORT)
-                        .show()
-                } else {
-                    Toast.makeText(this, "Recording stopped", Toast.LENGTH_SHORT).show()
-                }
-                text_view_state.text = "Press Start to record"
-
-                // ----- Do the computation with the recordedSound ----
-                cleanRecordedSound()        // Clean it
-                updateGraphRecorder()       // Plot it
-                //computeConvolutedSound()    // Compute the convolution with the sentSound
-                //updateGraphConvolutedSound()        // Plot the convoluted Sound
-            }
-        } else {
-            Toast.makeText(this, "You are not recording right now!", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    private fun cleanRecordedSound() {
-        recordedSound?.let {
-            // Check number of zeros at the beginning
-            var nbZerosBeginning = 0
-            for (i in 0 until it.size) {
-                if (it[i].toInt() == 0) {
-                    nbZerosBeginning++
-                } else {
-                    break
+    private fun refreshBluetooth() {
+        resetArrayListPaired()
+        arrayListPairedBluetoothDevices = ArrayList<BluetoothDevice>()
+        listview_paired_devices.clearChoices()
+        val pairedDevice: Set<BluetoothDevice>? = bluetoothAdapter?.bondedDevices
+        pairedDevice?.let{
+            if (it.isNotEmpty()) {
+                for (device in pairedDevice) {
+                    arrayListPaired?.add("${device.name} - ${device.address}")
+                    arrayListPairedBluetoothDevices?.add(device)
                 }
             }
-            // Check number of zeros at the beginning
-            var nbZerosEnding = 0
-            for (i in 0 until it.size) {
-                if (it[i].toInt() == 0) {
-                    nbZerosEnding++
-                } else {
-                    break
-                }
+            if(debug){
+                Log.d("refreshBluetooth", "array List paired : $arrayListPaired")
             }
-            // Remove it
-            if (nbZerosBeginning < it.size - nbZerosEnding){
-                recordedSound = ArrayList(it.subList(nbZerosBeginning, it.size - nbZerosEnding))
-            }
-
-            // Log it
-            if (debug) {
-                Log.d(
-                    "cleanRecordedSound",
-                    "Number of zeros at the: --  beginning : $nbZerosBeginning = ${nbZerosBeginning.toDouble() / recorderSampleRate.toDouble()} -- ending : $nbZerosEnding = ${nbZerosEnding.toDouble() / recorderSampleRate.toDouble()}"
-                )
-            }
-            // Basically : there was just 1024 values==0 at the beginning and the ending of the recorded sound = size of a buffer
         }
+        showArrayListPaired()
+        Toast.makeText(this, "Paired Bluetooth devices refreshed", Toast.LENGTH_SHORT).show()
     }
 
-    private fun updateGraphRecorder() {
-        // Used to plot the recorded Sound
-        recordedSound?.let {
-            // Create the DataPoint
-            val dataPoints: List<DataPoint> = it.mapIndexed { index, sh ->
-                DataPoint(
-                    index.toDouble() / recorderSampleRate.toDouble(),
-                    sh.toDouble()
-                )
+    private fun showArrayListPaired(){
+        var s = ""
+        arrayListPaired?.let{
+            for(m in it){
+                s += m + ",\n"
             }
-            val dataPointsArray: Array<DataPoint> = listToArray<DataPoint>(dataPoints)
-            val series = LineGraphSeries<DataPoint>(dataPointsArray)
-
-            graph_waveform_recorded.removeAllSeries()
-            graph_waveform_recorded.addSeries(series)
-            graph_waveform_recorded.setTitle("Recorded")
-            graph_waveform_recorded.getViewport().setScalable(true)
         }
+        text_paired_devices.text = s
+        Log.d("showArrayListPared", "$arrayAdapterPaired")
+        arrayAdapterPaired?.notifyDataSetChanged()
+
     }
+
+    // ---------- Scan Devices ----------
+
+    private fun makeDiscoverable() {
+        val discoverableIntent = Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE)
+        discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300)
+        startActivity(discoverableIntent)
+        Log.i("Log", "Discoverable ")
+    }
+
+    private fun startScan(){
+        Toast.makeText(this, "Start Scan", Toast.LENGTH_SHORT).show()
+        val filter = IntentFilter(BluetoothDevice.ACTION_FOUND)
+        foundBluetoothDevices = ArrayList<BluetoothDevice>()
+        registerReceiver(bluetoothReceiver, filter)
+        bluetoothAdapter?.startDiscovery()
+    }
+
+    private fun stopScan(){
+        unregisterReceiver(bluetoothReceiver)
+        bluetoothAdapter?.cancelDiscovery()
+        Toast.makeText(this, "Scan stopped", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun showfoundBluetoothDevices(){
+        var s: String = ""
+        foundBluetoothDevices?.let{
+            for(d in it){
+                s += "${d.name} - ${d.address},\n"
+            }
+        }
+        text_found_devices.text = s
+        Log.d("showFound", "$s $foundBluetoothDevices")
+    }
+
+
 
 }
 
