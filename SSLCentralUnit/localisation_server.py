@@ -9,7 +9,7 @@ from playsound import playsound
 SIGNAL_DURATION = 0.25  # s
 SAMPLE_FREQUENCY = 8000  # Hz
 SOUND_CELERITY = 340.29  # m/s
-SIMULATION = True
+SIMULATION = False
 
 
 def create_signal():
@@ -40,20 +40,25 @@ def emit_and_record(sock, emission_offset):
     Return the recorded signal
     """
     time_now = int(time.time() * 1000)
-    offset_recording = 1000
-    start_recording = time_now + offset
+    offset_recording = 3000
+    start_recording = time_now + offset_recording
     data = {
         "start": start_recording,
         "duration": emission_offset + int(SIGNAL_DURATION * 1000) + 250,
     }
     sock.send(json.dumps(data))
+    print(f"envoyé : {data}")
     time.sleep(start_recording / 1000 - time.time())
-    playsound(Path("../common/signal.wav"))
-    excepted_bytes = data["duration"] * SAMPLE_FREQUENCY / 1000 * 10
-    data = sock.recv(excepted_bytes)
+    playsound("../common/signal.wav")
+    data = b""
+    while True:
+        part = sock.recv(990)  # 990=length android bluetooth message
+        data += part
+        if len(part) < 990:
+            break
     json_data = data.decode("utf8")
-    print(f"data received = {json_data}")
     signal_record = json.loads(json_data)["data"]
+    signal_record = [int(v) for v in signal_record]
     return signal_record
 
 
@@ -94,7 +99,6 @@ if __name__ == "__main__":
         service_id=uuid,
         service_classes=[uuid, bt.SERIAL_PORT_CLASS],
         profiles=[bt.SERIAL_PORT_PROFILE],
-        # protocols = [ OBEX_UUID ]
     )
     if SIMULATION:
         emission_offset = 500 + np.random.randint(500)
@@ -126,8 +130,8 @@ if __name__ == "__main__":
                 response = {"accepted": False}
                 if d1 < 1:
                     response["accepted"] = True
-                client_sock.send(response)
-                client_sock.close()
+                bytes_send = client_sock.send(json.dumps(response))
+                print(f"send : {bytes_send} bytes")
                 print(
                     "{} : {}\noffset: {}\ntime: {}\ndistance: {}".format(
                         client_info,
