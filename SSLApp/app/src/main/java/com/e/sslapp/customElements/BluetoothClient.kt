@@ -2,6 +2,7 @@ package com.e.sslapp.customElements
 
 import android.bluetooth.BluetoothDevice
 import android.util.Log
+import androidx.appcompat.app.AppCompatActivity
 import java.util.*
 import kotlin.collections.ArrayList
 
