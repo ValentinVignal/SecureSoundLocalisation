@@ -215,7 +215,7 @@ class Activity4Manual : AppCompatActivity() {
                 if(debug){
                     Log.d("onOptionsItemSelected", "activity handler pressed")
                 }
-                changeActivity(Activity3Handler::class.java)
+                changeActivity(Activity4Handler::class.java)
                 return true
             }
             R.id.activity_bluetooth-> {

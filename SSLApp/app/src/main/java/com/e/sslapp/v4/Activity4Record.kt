@@ -35,6 +35,7 @@ import com.e.sslapp.customElements.BluetoothTrigger
 import com.jjoe64.graphview.series.DataPoint
 import com.jjoe64.graphview.series.LineGraphSeries
 import kotlinx.android.synthetic.main.activity4_record.*
+import com.e.sslapp.customElements.BluetoothClient
 
 
 class Activity4Record : AppCompatActivity() {
@@ -171,8 +172,6 @@ class Activity4Record : AppCompatActivity() {
                 startConnection()
                 readTriggerMessage()
                 startRecording()
-                sendRecord()
-                readAnswerMessage()
             }
         }
 
@@ -222,7 +221,8 @@ class Activity4Record : AppCompatActivity() {
 
         } else {
             debug = false
-            setTheme(R.style.LightTheme)
+            setTheme(R.style.LightTheme
+            )
         }
         if (!onCreate) {      // To avoid infinite loops
             changeActivity(Activity4Record::class.java)
@@ -393,9 +393,9 @@ class Activity4Record : AppCompatActivity() {
         }
         if (!isRecording) {
             recordStart?.let{itRecordStart ->
-                val recordStartOffset = itRecordStart - Calendar.getInstance().timeInMillis
+                var recordStartOffset = itRecordStart - Calendar.getInstance().timeInMillis
                 recordDuration?.let{itRecordDuration ->
-                    text_view_state.text = "Recording..."
+                    text_view_state.text = "Will record in ${recordStartOffset/1000}s"
                     val stopTime = itRecordStart + itRecordDuration
                     if (debug) {
                         Log.d(
@@ -414,6 +414,7 @@ class Activity4Record : AppCompatActivity() {
                              */
                             val handler = Handler()
                             r.startRecording()
+                            recordStartOffset = itRecordStart - Calendar.getInstance().timeInMillis
                             handler.postDelayed({ getAudioData(stopTime) }, recordStartOffset)
                         }
 
@@ -445,6 +446,7 @@ class Activity4Record : AppCompatActivity() {
     }
 
     private fun getAudioData(stopDate: Long) {
+        text_view_state.text = "Recording.."
         // Write the output audio in byte
         if (debug) {
             val currentTime = Calendar.getInstance().timeInMillis
@@ -503,18 +505,26 @@ class Activity4Record : AppCompatActivity() {
                 } else {
                     Toast.makeText(this, "Recording stopped", Toast.LENGTH_SHORT).show()
                 }
-                text_view_state.text = "Press Start to record"
 
                 // ----- Do the computation with the recordedSound ----
                 cleanRecordedSound()        // Clean it
                 updateGraphRecorder()       // Plot it
+                text_view_state.text = "Press Start to record"
             }
         } else {
             Toast.makeText(this, "You are not recording right now!", Toast.LENGTH_SHORT).show()
         }
+        sendRecord()
+        readAnswerMessage()
     }
 
     private fun cleanRecordedSound() {
+        if(debug){
+            Log.d(
+                "cleanRecordedSound",
+                "Length of the raw recording ${recordedSound?.size}"
+            )
+        }
         recordedSound?.let {
             // Check number of zeros at the beginning
             var nbZerosBeginning = 0
@@ -544,6 +554,10 @@ class Activity4Record : AppCompatActivity() {
                 Log.d(
                     "cleanRecordedSound",
                     "Number of zeros at the: --  beginning : $nbZerosBeginning = ${nbZerosBeginning.toDouble() / recorderSampleRate.toDouble()} -- ending : $nbZerosEnding = ${nbZerosEnding.toDouble() / recorderSampleRate.toDouble()}"
+                )
+                Log.d(
+                    "cleanRecordedSound",
+                    "Length of the cleaned recording ${recordedSound?.size}"
                 )
             }
             // Basically : there was just 1024 values==0 at the beginning and the ending of the recorded sound = size of a buffer
@@ -575,15 +589,14 @@ class Activity4Record : AppCompatActivity() {
     // ------------------------------ Bluetooth ------------------------------
     private fun startConnection() {
         text_view_state.text = "Initialazing connection..."
-        socket = connectedBluetoothDevice?.createInsecureRfcommSocketToServiceRecord(uuid)
+        socket = connectedBluetoothDevice?.createRfcommSocketToServiceRecord(uuid)
+        socket?.connect()
         inputStream = socket?.inputStream
         outputStream = socket?.outputStream
         Toast.makeText(this, "Connection started", Toast.LENGTH_SHORT).show()
-
-        // -----------------------
-
     }
     private fun readTriggerMessage(){
+        Thread.sleep(2000)
         text_view_state.text = "Getting Triggering Messages..."
         try {
             val message = readMessage()
@@ -593,7 +606,7 @@ class Activity4Record : AppCompatActivity() {
             text_start.text = recordStart.toString()
             text_duration.text = recordDuration.toString()
         } catch (e: KlaxonException){
-            Log.e("sendMessage", "Cannot parse the data", e)
+            Log.e("readTriggerData", "Cannot parse the data", e)
             text_start.text = e.toString()
             text_duration.text = e.toString()
         }
@@ -611,12 +624,22 @@ class Activity4Record : AppCompatActivity() {
     }
 
     private fun readMessage(): String{
+        inputStream = socket?.inputStream
+        outputStream = socket?.outputStream
         try{
-            val available = inputStream?.available()
-            available?.let{
-                val bytes = ByteArray(available)
+            var available = inputStream?.available()
+            while(available == 0){
+                Thread.sleep(500)
+                available = inputStream?.available()
+            }
+            available?.let{ itAvailable ->
+                val bytes = ByteArray(itAvailable)
                 Log.i("get message", "Reading")
-                inputStream?.read(bytes, 0, available)
+                inputStream?.read(bytes, 0, itAvailable)
+
+                Log.i("get message", "InputStream $inputStream")
+                Log.i("get message", "bytes $bytes")
+                Log.i("get message", "available $itAvailable")
                 val text = String(bytes)
                 Log.i("get message", "Message received")
                 Log.i("get message", "text: $text")
@@ -637,30 +660,14 @@ class Activity4Record : AppCompatActivity() {
             Log.d("sendMessage", "Button send massage pressed")
         }
         text_view_state.text = "Sending Record ..."
-        // Get the device
-        /*
-        var device: BluetoothDevice? = null
-        arrayListPairedBluetoothDevices?.let{
-            for(d in it){
-                if(d.name == "remi-arch"){
-                    device = d
-                }
-            }
-        }
-        device?.let {
-            BluetoothClient(it).start()
-        }
-        */
-
-        /*
-        connectedBluetoothDevice?.let{
-            BluetoothClient(it).start()
-        }
-        */
         recordedSound?.let{itRecordedSound ->
             val recordedSoundString = Klaxon().toJsonString(
                 BluetoothRecord(data=itRecordedSound)
             )
+            println("---------------------------------------------")
+            println("RecordedSound $recordedSound")
+            println("Class + ${BluetoothRecord(data=itRecordedSound)}")
+            println("recordedSoundString ${recordedSoundString.length}")
             text_record_sent.text = itRecordedSound.toString()
             try {
                 outputStream?.write(recordedSoundString.toByteArray())
@@ -690,7 +697,7 @@ class Activity4Record : AppCompatActivity() {
                 }
             }
         } catch (e: KlaxonException){
-            Log.e("sendMessage", "Cannot parse the data", e)
+            Log.e("readAnswerData", "Cannot parse the data", e)
             text_answer_accepted.text = e.toString()
             text_answer_accepted.setTextColor(Color.YELLOW)
 
