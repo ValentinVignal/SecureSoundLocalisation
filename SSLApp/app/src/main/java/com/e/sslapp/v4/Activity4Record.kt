@@ -270,6 +270,13 @@ class Activity4Record : AppCompatActivity() {
                 }
                 return true
             }
+            R.id.activity_play -> {
+                if (debug) {
+                    Log.d("onOptionsItemSelected", "activity play pressed")
+                }
+                changeActivity(Activity4Play::class.java)
+                return true
+            }
             // -------------------- Settings Menu --------------------
             R.id.settings_debug -> {
                 Log.d("onOptionsItemSelected", "settings debug pressed")

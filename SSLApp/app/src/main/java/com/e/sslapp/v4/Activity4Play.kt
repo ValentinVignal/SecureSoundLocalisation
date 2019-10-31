@@ -1,15 +1,10 @@
 package com.e.sslapp.v4
 
 import android.Manifest
-import android.bluetooth.BluetoothAdapter
-import android.bluetooth.BluetoothDevice
-import android.bluetooth.BluetoothSocket
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.AudioFormat
 import android.os.Bundle
-import android.os.Environment
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -17,23 +12,26 @@ import android.media.AudioRecord
 import android.view.Menu
 import android.view.MenuItem
 import androidx.appcompat.widget.Toolbar
-import java.util.*
+import com.jjoe64.graphview.series.DataPoint
+import com.jjoe64.graphview.series.LineGraphSeries
 import kotlin.collections.ArrayList
 import java.io.*
 import android.util.Log
+import android.view.View
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
+import android.widget.Spinner
 import com.e.sslapp.v1.Activity1Manual
 import com.e.sslapp.v2.Activity2Manual
 import com.e.sslapp.v3.Activity3Handler
 import com.e.sslapp.R
-import kotlinx.android.synthetic.main.activity4_bluetooth.*
-import com.beust.klaxon.*
-import com.e.sslapp.customElements.BluetoothTrigger
-import com.e.sslapp.customElements.BluetoothRecord
-import com.e.sslapp.customElements.BluetoothAnswer
+import kotlinx.android.synthetic.main.activity3_handler.*
+import kotlinx.android.synthetic.main.activity3_handler.button_start_recording
+import kotlinx.android.synthetic.main.activity3_handler.graph_waveform_recorded
+import kotlinx.android.synthetic.main.activity4_play.*
 
 
-
-class Activity4Bluetooth : AppCompatActivity() {
+class Activity4Play : AppCompatActivity() {
 
     // ------------------------------------------------------------
     //                           Static object
@@ -93,20 +91,11 @@ class Activity4Bluetooth : AppCompatActivity() {
         recorderChannels, recorderAudioEncoding
     )
 
-    // ---------- Handle the recording datas ----------
-    private val rootDirectory: File =
-        File(Environment.getExternalStorageDirectory().absolutePath + "/SSL")       // Diretory where it is gonna be saved
-    private var recordedSound: ArrayList<Short>? = null     // The sound recorder by the phone
+    // ---------- Handle the Sound ----------
+    private var spinnerChoices: ArrayList<String> = ArrayList<String>()
+    private var arrayAdapterSpinner: ArrayAdapter<String>? = null
+    private var createdSound: ArrayList<Short>? = null     // The sound recorder by the phone
 
-    // ---------- Bluetooth ----------
-    private var bluetoothAdapter: BluetoothAdapter? = null
-    private var connectedBluetoothDevice: BluetoothDevice? = null
-    private var uuid: UUID = UUID.fromString("ae465fd9-2d3b-a4c6-4385-ea69b4c1e23c")
-    private var socket: BluetoothSocket? = null
-    private var inputStream: InputStream? = null
-    private var outputStream: OutputStream? = null
-
-    private var connected: Boolean = false
 
     // ------------------------------------------------------------
     //                           Methods
@@ -123,7 +112,7 @@ class Activity4Bluetooth : AppCompatActivity() {
         changeTheme(debug, onCreate = true)
 
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity4_bluetooth)
+        setContentView(R.layout.activity4_play)
 
         // ---------- Handle Toolbar ----------
         toolbar = findViewById(R.id.activity_toolbar)
@@ -136,48 +125,43 @@ class Activity4Bluetooth : AppCompatActivity() {
         // ---------- Check the permission ----------
         checkPermission()
 
-        // ----- Create the directory if it doesn't exist -----
-        if (!rootDirectory.exists()) {
-            rootDirectory.mkdirs()
-        }
-
-        // ---------- Bluetooth ----------
-        initBluetooth()
+        // ---------- Spinner ----------
+        initSpinnerSound()
 
         // -------------------- Call when Start button is pressed --------------------
-        button_send_message.setOnClickListener {
-            sendMessage()
-        }
-
-        button_connect_bluetooth.setOnClickListener{
-            changeActivity(Activity4ConnectBluetooth::class.java)
-        }
-
-        button_start_connection.setOnClickListener{
-            if(connected){
-                button_start_connection.text = "Start connection"
-                connected = false
-                stopConnection()
-            } else {
-                button_start_connection.text = "Stop connection"
-                connected = true
-                startConnection()
+        button_start_recording.setOnClickListener {
+            if (checkPermission()) {
+                // We can start the recording
+                //startRecording()
             }
         }
 
-        // If no bluetooth device connected, ask for connection:
-        if(connectedBluetoothDevice == null){
-            changeActivity(Activity4ConnectBluetooth::class.java)
+        /*
+        form_spinner_sound.onItemSelectedListener = object: AdapterView.OnItemSelectedListener{
+            override fun onItemSelected(p0: AdapterView<*>?, p1: View?, p2: Int, p3: Long) {
+                getAllIntent()
+            }
         }
 
-        text_paired_device.text = "${connectedBluetoothDevice?.name} - ${connectedBluetoothDevice?.address}"
+         */
+        form_spinner_sound.onItemSelectedListener = object: AdapterView.OnItemSelectedListener{
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                if(debug){
+                    Log.d("Spinner.onItemSelected", "position: $position")
+                }
+            }
+
+            override fun onNothingSelected(p0: AdapterView<*>?) {
+                form_spinner_sound.setSelection(0)
+            }
+        }
+
     }
 
-    private fun getAllIntent() {
+    private fun getAllIntent(){
         val intent = this.intent
         debug = intent.getBooleanExtra("debug", debug)
         saveRecord = intent.getBooleanExtra("saveRecord", saveRecord)
-        connectedBluetoothDevice = intent.getParcelableExtra("connectedBluetoothDevice")
     }
 
     private fun checkPermission(): Boolean {
@@ -187,17 +171,13 @@ class Activity4Bluetooth : AppCompatActivity() {
         ) != PackageManager.PERMISSION_GRANTED || ContextCompat.checkSelfPermission(
             this,
             Manifest.permission.WRITE_EXTERNAL_STORAGE
-        ) != PackageManager.PERMISSION_GRANTED || ContextCompat.checkSelfPermission(
-            this,
-            Manifest.permission.BLUETOOTH
         ) != PackageManager.PERMISSION_GRANTED
                 )
         if (isNotChecked) {
             val permissions = arrayOf(
                 Manifest.permission.RECORD_AUDIO,
                 Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                Manifest.permission.READ_EXTERNAL_STORAGE,
-                Manifest.permission.BLUETOOTH
+                Manifest.permission.READ_EXTERNAL_STORAGE
             )
             ActivityCompat.requestPermissions(this, permissions, 0)
         }
@@ -214,12 +194,8 @@ class Activity4Bluetooth : AppCompatActivity() {
             setTheme(R.style.LightTheme)
         }
         if (!onCreate) {      // To avoid infinite loops
-            changeActivity(Activity4Bluetooth::class.java)
+            changeActivity(Activity4Play::class.java)
         }
-    }
-
-    private fun initBluetooth(){
-        bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
     }
 
     // ------------------------------ Menu ------------------------------
@@ -231,10 +207,10 @@ class Activity4Bluetooth : AppCompatActivity() {
         return super.onCreateOptionsMenu(menu)
     }
 
-    private fun initiateMenuItems(menu: Menu?) {
+    private fun initiateMenuItems(menu: Menu?){
         // ----- Activities -----
-        val activity = menu?.findItem(R.id.activity_bluetooth)
-        activity?.title = "-> Bluetooth <-"
+        val activity = menu?.findItem(R.id.activity_play)
+        activity?.title = "-> Play <-"
         // ----- Settings -----
         val settingDebug = menu?.findItem(R.id.settings_debug)
         settingDebug?.title = if (debug) "Debug: ON" else "Debug: OFF"
@@ -253,6 +229,10 @@ class Activity4Bluetooth : AppCompatActivity() {
                 if (debug) {
                     Log.d("onOptionsItemSelected", "activity manual pressed")
                 }
+                /*
+                val intent = Intent(this, Activity3Manual::class.java)
+                startActivity(intent)
+                 */
                 changeActivity(Activity4Manual::class.java)
                 return true
             }
@@ -263,17 +243,24 @@ class Activity4Bluetooth : AppCompatActivity() {
                 changeActivity(Activity4Handler::class.java)
                 return true
             }
-            R.id.activity_bluetooth -> {
+            R.id.activity_bluetooth-> {
                 if (debug) {
                     Log.d("onOptionsItemSelected", "activity bluetooth pressed")
                 }
+                changeActivity(Activity4Bluetooth::class.java)
+                return true
+            }
+            R.id.activity_record -> {
+                if (debug) {
+                    Log.d("onOptionsItemSelected", "activity record pressed")
+                }
+                changeActivity(Activity4Record::class.java)
                 return true
             }
             R.id.activity_play -> {
                 if (debug) {
                     Log.d("onOptionsItemSelected", "activity play pressed")
                 }
-                changeActivity(Activity4Play::class.java)
                 return true
             }
             // -------------------- Settings Menu --------------------
@@ -290,14 +277,14 @@ class Activity4Bluetooth : AppCompatActivity() {
                 return true
             }
             R.id.settings_save_record -> {
-                if (saveRecord) {
+                if(saveRecord){
                     saveRecord = false
                     item.title = "Save Record: OFF"
                 } else {
                     saveRecord = true
                     item.title = "Save Record: ON"
                 }
-                if (debug) {
+                if(debug){
                     Log.d("onOptionItemSelected", "setting_save_record_pressed")
                 }
             }
@@ -318,7 +305,7 @@ class Activity4Bluetooth : AppCompatActivity() {
                 return true
             }
             R.id.version_3_0 -> {
-                if (debug) {
+                if(debug){
                     println("v3 pressed")
                 }
                 changeActivity(Activity3Handler::class.java)
@@ -334,13 +321,12 @@ class Activity4Bluetooth : AppCompatActivity() {
         return super.onOptionsItemSelected(item)
     }
 
-    private fun changeActivity(activity: Class<*>) {
+
+    private fun changeActivity(activity: Class<*>){
         val intent = Intent(this, activity)
         // ----- Put Extra -----
         intent.putExtra("debug", debug)     // Debug value
         intent.putExtra("saveRecord", saveRecord)
-        intent.putExtra("connectedBluetoothDevice", connectedBluetoothDevice)
-        intent.putExtra("previousActivity", "Bluetooth")
         // ----- Start activity -----
         startActivity(intent)
     }
@@ -369,107 +355,40 @@ class Activity4Bluetooth : AppCompatActivity() {
         return (list as List<T>).toTypedArray()
     }
 
+    // ------------------------------ Choose sound ------------------------------
 
-    // ------------------------------ Handle button ------------------------------
-    private fun startConnection(){
-        socket = connectedBluetoothDevice?.createInsecureRfcommSocketToServiceRecord(uuid)
-        inputStream = socket?.inputStream
-        outputStream = socket?.outputStream
-        Toast.makeText(this, "Connection started", Toast.LENGTH_SHORT).show()
-
-        // -----------------------
-
-        try {
-            val message = readMessage()
-            text_received_message_trigger.text = message
-            val messageJSON = Klaxon().parse<BluetoothTrigger>(message)
-            text_received_message_trigger_start.text = messageJSON?.start.toString()
-            text_received_message_trigger_duration.text = messageJSON?.duration.toString()
-        } catch (e: KlaxonException){
-            Log.e("sendMessage", "Cannot parse the data", e)
-            text_received_message_trigger.text = e.toString()
-            text_received_message_trigger_start.text = e.toString()
-            text_received_message_trigger_duration.text = e.toString()
-        }
+    private fun initSpinnerSound(){
+        spinnerChoices.add("sin")
+        spinnerChoices.add("white noise")
+        arrayAdapterSpinner = ArrayAdapter<String>(this, android.R.layout.simple_spinner_dropdown_item, spinnerChoices)
+        val spinner = findViewById<Spinner>(R.id.form_spinner_sound)
+        spinner.adapter = arrayAdapterSpinner
     }
 
-    private fun stopConnection(){
-        outputStream?.close()
-        inputStream?.close()
-        socket?.close()
-        outputStream = null
-        inputStream = null
-        socket = null
-        Toast.makeText(this, "Connection stopped", Toast.LENGTH_SHORT).show()
-    }
 
-    private fun readMessage(): String{
-        try{
-            val available = inputStream?.available()
-            available?.let{
-                val bytes = ByteArray(available)
-                Log.i("get message", "Reading")
-                inputStream?.read(bytes, 0, available)
-                val text = String(bytes)
-                Log.i("get message", "Message received")
-                Log.i("get message", "text: $text")
-                return text
+    // ------------------------------ Stop Recording ------------------------------
+
+
+    private fun updateGraphRecorder() {
+        // Used to plot the recorded Sound
+        createdSound?.let {
+            // Create the DataPoint
+            val dataPoints: List<DataPoint> = it.mapIndexed { index, sh ->
+                DataPoint(
+                    index.toDouble() / recorderSampleRate.toDouble(),
+                    sh.toDouble()
+                )
             }
-        } catch (e: java.lang.Exception){
-            Log.e("get message", "Cannot read data", e)
-            return e.toString()
-        } catch (e: java.lang.NullPointerException){
-            Log.e("get message", "Input Stream not available", e)
-            return e.toString()
+            val dataPointsArray: Array<DataPoint> = listToArray<DataPoint>(dataPoints)
+            val series = LineGraphSeries<DataPoint>(dataPointsArray)
+
+            graph_waveform_recorded.removeAllSeries()
+            graph_waveform_recorded.addSeries(series)
+            graph_waveform_recorded.setTitle("Recorded")
+            graph_waveform_recorded.getViewport().setScalable(true)
         }
-        return ""
     }
 
-    private fun sendMessage() {
-        if (debug) {
-            Log.d("sendMessage", "Button send massage pressed")
-        }
-        // Get the device
-        /*
-        var device: BluetoothDevice? = null
-        arrayListPairedBluetoothDevices?.let{
-            for(d in it){
-                if(d.name == "remi-arch"){
-                    device = d
-                }
-            }
-        }
-        device?.let {
-            BluetoothClient(it).start()
-        }
-        */
-
-        /*
-        connectedBluetoothDevice?.let{
-            BluetoothClient(it).start()
-        }
-        */
-
-        try {
-            outputStream?.write(form_message_to_send.text.toString().toByteArray())
-            outputStream?.flush()
-            Log.i("send message", "Sent")
-        } catch (e: Exception) {
-            Log.e("send Message", "Cannot send", e)
-        }
-        Toast.makeText(this, "Message sent", Toast.LENGTH_SHORT).show()
-
-        try{
-            val message = readMessage()
-            text_received_message_answer.text = message
-            val messageJSON = Klaxon().parse<BluetoothAnswer>(message)
-            text_received_message_answer_accepted.text = messageJSON?.accepted.toString()
-        } catch (e: KlaxonException){
-            Log.e("sendMessage", "Cannot parse the data", e)
-            text_received_message_answer.text = e.toString()
-            text_received_message_answer_accepted.text = e.toString()
-        }
-    }
 }
 
 
