@@ -137,6 +137,8 @@ class Activity4Record : AppCompatActivity() {
         // -------------------- Call when Start button is pressed --------------------
 
         button_connect_bluetooth.setOnClickListener{
+            // val time = Calendar.getInstance().timeInMillis
+            // Log.i("time", "Time: $time")
             changeActivity(Activity4ConnectBluetooth::class.java)
         }
 
@@ -420,15 +422,21 @@ class Activity4Record : AppCompatActivity() {
         text_view_state.text = "Recording.."
         // Write the output audio in byte
         val sData = ShortArray(bufferElements2Rec)
+        // val timeBeforeWile = Calendar.getInstance().timeInMillis
+        // Log.d("getAudioData", "before while data: ${timeBeforeWile}")
         while (stopDate > Calendar.getInstance().timeInMillis) {
             // gets the voice output from microphone to byte format
             recorder?.read(sData, 0, bufferElements2Rec)
             sData.forEach { recordedSound?.add(it) }
         }
+        // val timeAfterWile = Calendar.getInstance().timeInMillis
+        // Log.d("getAudioData", "after while data: ${timeAfterWile}")
+        // Log.d("getAudioData", "Duration : ${timeAfterWile - timeBeforeWile}")
         if (debug) {
             val currentTime = Calendar.getInstance().timeInMillis
             Log.d("getAudioData", "stop recording at $currentTime")
         }
+        Log.d("getAudioData", "before while data: ${Calendar.getInstance().timeInMillis}")
         stopRecording()
     }
 
@@ -527,11 +535,15 @@ class Activity4Record : AppCompatActivity() {
     // ------------------------------ Bluetooth ------------------------------
     private fun startConnection() {
         text_view_state.text = "Initialazing connection..."
-        socket = connectedBluetoothDevice?.createRfcommSocketToServiceRecord(uuid)
-        socket?.connect()
-        inputStream = socket?.inputStream
-        outputStream = socket?.outputStream
-        Toast.makeText(this, "Connection started", Toast.LENGTH_SHORT).show()
+        try{
+            socket = connectedBluetoothDevice?.createRfcommSocketToServiceRecord(uuid)
+            socket?.connect()
+            inputStream = socket?.inputStream
+            outputStream = socket?.outputStream
+            Toast.makeText(this, "Connection started", Toast.LENGTH_SHORT).show()
+        } catch(e: java.io.IOException) {
+            Log.e("start connect", "Couldn't start the connection", e)
+        }
     }
 
     private fun readTriggerMessage(){
@@ -562,13 +574,10 @@ class Activity4Record : AppCompatActivity() {
     }
 
     private fun readMessage(): String{
-        inputStream = socket?.inputStream
-        outputStream = socket?.outputStream
         try{
             var available = inputStream?.available()
             while(available == 0){
-                // TODO: Find solution, because if no message : stuck
-                Thread.sleep(500)
+                Thread.sleep(200)
                 available = inputStream?.available()
             }
             available?.let{ itAvailable ->
@@ -594,25 +603,18 @@ class Activity4Record : AppCompatActivity() {
     }
 
     private fun sendRecord() {
-        if (debug) {
-            Log.d("sendMessage", "Button send massage pressed")
-        }
         text_view_state.text = "Sending Record ..."
         recordedSound?.let{itRecordedSound ->
             val recordedSoundString = Klaxon().toJsonString(
                 BluetoothRecord(data=itRecordedSound)
             )
-            println("---------------------------------------------")
-            println("RecordedSound $recordedSound")
-            println("Class + ${BluetoothRecord(data=itRecordedSound)}")
-            println("recordedSoundString ${recordedSoundString.length}")
             text_record_sent.text = itRecordedSound.toString()
             try {
                 outputStream?.write(recordedSoundString.toByteArray())
                 outputStream?.flush()
-                Log.i("send message", "Sent")
+                Log.i("sendRecord", "Sent")
             } catch (e: Exception) {
-                Log.e("send Message", "Cannot send", e)
+                Log.e("sendRecord", "Cannot send", e)
             }
             Toast.makeText(this, "Message sent", Toast.LENGTH_SHORT).show()
         }
