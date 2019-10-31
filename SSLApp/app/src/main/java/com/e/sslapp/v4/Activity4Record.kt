@@ -35,8 +35,6 @@ import com.e.sslapp.customElements.BluetoothTrigger
 import com.jjoe64.graphview.series.DataPoint
 import com.jjoe64.graphview.series.LineGraphSeries
 import kotlinx.android.synthetic.main.activity4_record.*
-import com.e.sslapp.customElements.BluetoothClient
-
 
 class Activity4Record : AppCompatActivity() {
 
@@ -46,25 +44,6 @@ class Activity4Record : AppCompatActivity() {
 
     companion object {
 
-        // --------------------
-        //      Attributs
-        // --------------------
-
-        // var debug: Boolean = false // Use to debug (and for example print in the terminal)
-
-        // --------------------
-        //       Methods
-        // --------------------
-
-        fun newRecordPath(rootDirectory: File): String {
-            var i = 0
-            var nRecordPath = rootDirectory.absolutePath + "/recording_$i.pcm"
-            while (File(nRecordPath).exists()) {
-                i += 1
-                nRecordPath = rootDirectory.absolutePath + "/recording_$i.pcm"
-            }
-            return nRecordPath
-        }
     }
 
     // ------------------------------------------------------------
@@ -158,6 +137,8 @@ class Activity4Record : AppCompatActivity() {
         // -------------------- Call when Start button is pressed --------------------
 
         button_connect_bluetooth.setOnClickListener{
+            // val time = Calendar.getInstance().timeInMillis
+            // Log.i("time", "Time: $time")
             changeActivity(Activity4ConnectBluetooth::class.java)
         }
 
@@ -169,6 +150,7 @@ class Activity4Record : AppCompatActivity() {
             } else {
                 button_connection.text = "Stop connection"
                 connected = true
+                graph_waveform_recorded.removeAllSeries()
                 startConnection()
                 readTriggerMessage()
                 startRecording()
@@ -178,12 +160,13 @@ class Activity4Record : AppCompatActivity() {
         // If no bluetooth device connected, ask for connection:
         if(connectedBluetoothDevice == null){
             changeActivity(Activity4ConnectBluetooth::class.java)
+        } else {
+            text_paired_device.text = "${connectedBluetoothDevice?.name} - ${connectedBluetoothDevice?.address}"
         }
-
-        text_paired_device.text = "${connectedBluetoothDevice?.name} - ${connectedBluetoothDevice?.address}"
     }
 
     private fun getAllIntent() {
+        // To get the intent (variables from the previous activity)
         val intent = this.intent
         debug = intent.getBooleanExtra("debug", debug)
         saveRecord = intent.getBooleanExtra("saveRecord", saveRecord)
@@ -356,7 +339,6 @@ class Activity4Record : AppCompatActivity() {
         startActivity(intent)
     }
 
-
     // ------------------------------ Helper ------------------------------
 
     // ---------- Use to change Short to Byte ----------
@@ -385,9 +367,8 @@ class Activity4Record : AppCompatActivity() {
 
 
     private fun startRecording() {
+        text_view_state.text = "Wait to record.."
         if (debug) {
-            // val currentDate = LocalDateTime.now()
-            // var milliseconds = currentDate.getTime()
             val currentTime = Calendar.getInstance().timeInMillis
             Log.d("startRecording", "Button start pressed at $currentTime")
         }
@@ -406,12 +387,6 @@ class Activity4Record : AppCompatActivity() {
                     try {
                         prepareRecorder()
                         recorder?.let { r ->
-                            /*
-                            recordingThread =
-                                Thread(Runnable { getAudioData() }, "AudioRecorder Thread")
-                            r.startRecording()
-                            recordingThread?.start()
-                             */
                             val handler = Handler()
                             r.startRecording()
                             recordStartOffset = itRecordStart - Calendar.getInstance().timeInMillis
@@ -419,17 +394,15 @@ class Activity4Record : AppCompatActivity() {
                         }
 
                     } catch (e: IllegalStateException) {
-                        e.printStackTrace()
+                        Log.e("startRecording", "Can't start recording", e)
                     } catch (e: IOException) {
-                        e.printStackTrace()
+                        Log.e("startRecording", "Can't start recording", e)
                     }
 
                 }
-
             }
         } else {
             Toast.makeText(this, "You are already recording", Toast.LENGTH_SHORT).show()
-
         }
     }
 
@@ -448,35 +421,22 @@ class Activity4Record : AppCompatActivity() {
     private fun getAudioData(stopDate: Long) {
         text_view_state.text = "Recording.."
         // Write the output audio in byte
-        if (debug) {
-            val currentTime = Calendar.getInstance().timeInMillis
-            Log.d("getAudioData", "start recording at $currentTime")
-        }
-
         val sData = ShortArray(bufferElements2Rec)
-
-        if (debug) {
-            val currentTime = Calendar.getInstance().timeInMillis
-            Log.d("getAudioData", "Just before while at $currentTime")
-        }
+        // val timeBeforeWile = Calendar.getInstance().timeInMillis
+        // Log.d("getAudioData", "before while data: ${timeBeforeWile}")
         while (stopDate > Calendar.getInstance().timeInMillis) {
             // gets the voice output from microphone to byte format
-
             recorder?.read(sData, 0, bufferElements2Rec)
-            // val iData: IntArray = IntArray(sData.size){ sData[it].toInt() }
             sData.forEach { recordedSound?.add(it) }
-            if (debug) {
-                println(
-                    "Short writing to file${Arrays.toString(sData.sliceArray(1..10))}..." +
-                            "${sData.takeLast(10)} -- size : ${sData.size}"
-                )
-                println("Size of ArrayList: ${recordedSound?.size} -- ${recordedSound?.takeLast(10)}")
-            }
         }
+        // val timeAfterWile = Calendar.getInstance().timeInMillis
+        // Log.d("getAudioData", "after while data: ${timeAfterWile}")
+        // Log.d("getAudioData", "Duration : ${timeAfterWile - timeBeforeWile}")
         if (debug) {
             val currentTime = Calendar.getInstance().timeInMillis
             Log.d("getAudioData", "stop recording at $currentTime")
         }
+        Log.d("getAudioData", "before while data: ${Calendar.getInstance().timeInMillis}")
         stopRecording()
     }
 
@@ -485,32 +445,20 @@ class Activity4Record : AppCompatActivity() {
     private fun stopRecording() {
         text_view_state.text = "Cleaning recording ..."
         // stops the recording activity
-        if (debug) {
-            val currentTime = Calendar.getInstance().timeInMillis
-            Log.d("stopRecording", "In function at time $currentTime")
-        }
         if (isRecording) {
             isRecording = false
-            if (null != recorder) {
-                isRecording = false
-                recorder?.let { r ->
-                    r.stop()
-                    r.release()
-                }
-                recorder = null
-                recordingThread = null
-                if (mSaveRecord) {
-                    Toast.makeText(this, "Recording saved in $recordPath", Toast.LENGTH_SHORT)
-                        .show()
-                } else {
-                    Toast.makeText(this, "Recording stopped", Toast.LENGTH_SHORT).show()
-                }
-
-                // ----- Do the computation with the recordedSound ----
-                cleanRecordedSound()        // Clean it
-                updateGraphRecorder()       // Plot it
-                text_view_state.text = "Press Start to record"
+            recorder?.let { r ->
+                r.stop()
+                r.release()
             }
+            recorder = null
+            recordingThread = null
+            Toast.makeText(this, "Recording stopped", Toast.LENGTH_SHORT).show()
+
+            // ----- Do the computation with the recordedSound ----
+            cleanRecordedSound()        // Clean it
+            updateGraphRecorder()       // Plot it
+            text_view_state.text = "Press Start to record"
         } else {
             Toast.makeText(this, "You are not recording right now!", Toast.LENGTH_SHORT).show()
         }
@@ -560,7 +508,7 @@ class Activity4Record : AppCompatActivity() {
                     "Length of the cleaned recording ${recordedSound?.size}"
                 )
             }
-            // Basically : there was just 1024 values==0 at the beginning and the ending of the recorded sound = size of a buffer
+            // Basically : there were just 1024 values==0 at the beginning and the ending of the recorded sound = size of a buffer
         }
     }
 
@@ -584,19 +532,21 @@ class Activity4Record : AppCompatActivity() {
         }
     }
 
-
-
     // ------------------------------ Bluetooth ------------------------------
     private fun startConnection() {
         text_view_state.text = "Initialazing connection..."
-        socket = connectedBluetoothDevice?.createRfcommSocketToServiceRecord(uuid)
-        socket?.connect()
-        inputStream = socket?.inputStream
-        outputStream = socket?.outputStream
-        Toast.makeText(this, "Connection started", Toast.LENGTH_SHORT).show()
+        try{
+            socket = connectedBluetoothDevice?.createRfcommSocketToServiceRecord(uuid)
+            socket?.connect()
+            inputStream = socket?.inputStream
+            outputStream = socket?.outputStream
+            Toast.makeText(this, "Connection started", Toast.LENGTH_SHORT).show()
+        } catch(e: java.io.IOException) {
+            Log.e("start connect", "Couldn't start the connection", e)
+        }
     }
+
     private fun readTriggerMessage(){
-        Thread.sleep(2000)
         text_view_state.text = "Getting Triggering Messages..."
         try {
             val message = readMessage()
@@ -624,57 +574,47 @@ class Activity4Record : AppCompatActivity() {
     }
 
     private fun readMessage(): String{
-        inputStream = socket?.inputStream
-        outputStream = socket?.outputStream
         try{
             var available = inputStream?.available()
             while(available == 0){
-                Thread.sleep(500)
+                Thread.sleep(200)
                 available = inputStream?.available()
             }
             available?.let{ itAvailable ->
                 val bytes = ByteArray(itAvailable)
-                Log.i("get message", "Reading")
+                Log.i("readMessage", "Reading")
                 inputStream?.read(bytes, 0, itAvailable)
-
-                Log.i("get message", "InputStream $inputStream")
-                Log.i("get message", "bytes $bytes")
-                Log.i("get message", "available $itAvailable")
+                Log.i("readMessage", "InputStream $inputStream")
+                Log.i("readMessage", "available $itAvailable")
                 val text = String(bytes)
-                Log.i("get message", "Message received")
-                Log.i("get message", "text: $text")
+                Log.i("readMessage", "Message received: text $ text")
                 return text
             }
         } catch (e: java.lang.Exception){
-            Log.e("get message", "Cannot read data", e)
+            Log.e("readMessage", "Cannot read data", e)
             return e.toString()
         } catch (e: java.lang.NullPointerException){
-            Log.e("get message", "Input Stream not available", e)
+            Log.e("readMessage", "Input Stream not available", e)
             return e.toString()
         }
-        return ""
+        val text = "Didn't get any text"
+        Log.e("readMessage", text)
+        return text
     }
 
     private fun sendRecord() {
-        if (debug) {
-            Log.d("sendMessage", "Button send massage pressed")
-        }
         text_view_state.text = "Sending Record ..."
         recordedSound?.let{itRecordedSound ->
             val recordedSoundString = Klaxon().toJsonString(
                 BluetoothRecord(data=itRecordedSound)
             )
-            println("---------------------------------------------")
-            println("RecordedSound $recordedSound")
-            println("Class + ${BluetoothRecord(data=itRecordedSound)}")
-            println("recordedSoundString ${recordedSoundString.length}")
             text_record_sent.text = itRecordedSound.toString()
             try {
                 outputStream?.write(recordedSoundString.toByteArray())
                 outputStream?.flush()
-                Log.i("send message", "Sent")
+                Log.i("sendRecord", "Sent")
             } catch (e: Exception) {
-                Log.e("send Message", "Cannot send", e)
+                Log.e("sendRecord", "Cannot send", e)
             }
             Toast.makeText(this, "Message sent", Toast.LENGTH_SHORT).show()
         }
