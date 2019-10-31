@@ -26,8 +26,13 @@
                 app:showAsAction="never" />
             <item
                 android:id="@+id/activity_record"
-                android:orderInCategory="300"
+                android:orderInCategory="400"
                 android:title="Record"
+                app:showAsAction="never" />
+            <item
+                android:id="@+id/activity_play"
+                android:orderInCategory="500"
+                android:title="Play"
                 app:showAsAction="never" />
         </menu>
     </item>
