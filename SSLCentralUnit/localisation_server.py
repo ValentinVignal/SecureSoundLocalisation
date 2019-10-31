@@ -4,7 +4,19 @@ import json
 from pathlib import Path
 import scipy.io.wavfile as wav
 import time
-from playsound import playsound
+import sys
+
+if sys.platform.startswith('win'):
+    import winsound
+
+    def play_sound(path):
+        winsound.PlaySound(path, winsound.SND_FILENAME)
+
+elif sys.platform.startswith('linux'):
+    from playsound import playsound
+
+    def play_sound(path):
+        playsound(path)
 
 SIGNAL_DURATION = 0.25  # s
 SAMPLE_FREQUENCY = 8000  # Hz
@@ -40,16 +52,17 @@ def emit_and_record(sock, emission_offset):
     Return the recorded signal
     """
     time_now = int(time.time() * 1000)
-    offset_recording = 3000
+    offset_recording = 2000
     start_recording = time_now + offset_recording
     data = {
         "start": start_recording,
-        "duration": emission_offset + int(SIGNAL_DURATION * 1000) + 250,
+        "duration": emission_offset + int(SIGNAL_DURATION * 1000) + 500,
     }
     sock.send(json.dumps(data))
     print(f"envoyé : {data}")
-    time.sleep(start_recording / 1000 - time.time())
-    playsound("../common/signal.wav")
+    time.sleep((start_recording + emission_offset) / 1000 - int(time.time()))
+    print('time when played', time.time() * 1000)
+    play_sound("../common/signal.wav")
     data = b""
     while True:
         part = sock.recv(990)  # 990=length android bluetooth message
@@ -66,8 +79,8 @@ def get_time(signal_record, signal_emit, emission_offset):
     """
     Given the recorded and emited signal and the emission offset, return the travel time
     """
-    time_receive = np.argmax(np.abs(np.convolve(signal_record, signal_emit)))
-    return time_receive / SAMPLE_FREQUENCY - emission_offset / 1000 - SIGNAL_DURATION
+    time_receive = np.argmax(np.abs(np.convolve(signal_record, np.flip(signal_emit), mode='valid')))
+    return time_receive / SAMPLE_FREQUENCY# - emission_offset / 1000 - SIGNAL_DURATION
 
 
 def simulate_record(duration, emission_offset, distance, signal_emit):
@@ -123,7 +136,7 @@ if __name__ == "__main__":
             print("Accepted connection from ", client_info)
 
             try:
-                emission_offset = 500 + np.random.randint(500)
+                emission_offset = 1000 + np.random.randint(1000)
                 signal_record = emit_and_record(client_sock, emission_offset)
                 t1 = get_time(signal_record, signal, emission_offset)
                 d1 = t1 * SOUND_CELERITY
