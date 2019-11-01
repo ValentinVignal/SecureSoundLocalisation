@@ -4,11 +4,12 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.AudioFormat
+import android.media.AudioManager
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import android.media.AudioRecord
+import android.media.AudioTrack
 import android.view.Menu
 import android.view.MenuItem
 import androidx.appcompat.widget.Toolbar
@@ -25,9 +26,7 @@ import com.e.sslapp.v1.Activity1Manual
 import com.e.sslapp.v2.Activity2Manual
 import com.e.sslapp.v3.Activity3Handler
 import com.e.sslapp.R
-import kotlinx.android.synthetic.main.activity3_handler.*
 import kotlinx.android.synthetic.main.activity3_handler.button_start_recording
-import kotlinx.android.synthetic.main.activity3_handler.graph_waveform_recorded
 import kotlinx.android.synthetic.main.activity4_play.*
 
 
@@ -78,18 +77,16 @@ class Activity4Play : AppCompatActivity() {
     private var recordPath: String? = null      // Where data is saved
 
     // ---------- Variables for AudioRecord ----------
-    private val recorderSampleRate: Int = 8000  // For emulator, put 44100 for real phone
-    private val recorderChannels = AudioFormat.CHANNEL_IN_MONO
-    private val recorderAudioEncoding = AudioFormat.ENCODING_PCM_16BIT
-    private var recorder: AudioRecord? = null
-    private var recordingThread: Thread? = null
+    private val sampleRate: Int = 8000  // For emulator, put 44100 for real phone
+    private val playerChannels = AudioFormat.CHANNEL_OUT_MONO
+    private val playerAudioEncoding = AudioFormat.ENCODING_PCM_16BIT
+    private val playerMode = AudioTrack.MODE_STATIC
+
+
+
     private var bufferElements2Rec: Int =
         1024 // want to play 2048 (2K) since 2 bytes we use only 1024
     private var bytesPerElement: Int = 2 // 2 bytes in 16bit format
-    private var bufferSize: Int = AudioRecord.getMinBufferSize(
-        recorderSampleRate,
-        recorderChannels, recorderAudioEncoding
-    )
 
     // ---------- Handle the Sound ----------
     private var spinnerChoices: ArrayList<String> = ArrayList<String>()
@@ -130,25 +127,18 @@ class Activity4Play : AppCompatActivity() {
 
         // -------------------- Call when Start button is pressed --------------------
         button_start_recording.setOnClickListener {
-            if (checkPermission()) {
-                // We can start the recording
-                //startRecording()
+            if(debug){
+                Log.d("buttonStartRecordingOnClickListener", "Button Start pressed")
             }
+            playSound()
         }
 
-        /*
-        form_spinner_sound.onItemSelectedListener = object: AdapterView.OnItemSelectedListener{
-            override fun onItemSelected(p0: AdapterView<*>?, p1: View?, p2: Int, p3: Long) {
-                getAllIntent()
-            }
-        }
-
-         */
         form_spinner_sound.onItemSelectedListener = object: AdapterView.OnItemSelectedListener{
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 if(debug){
                     Log.d("Spinner.onItemSelected", "position: $position")
                 }
+                createSound(position)
             }
 
             override fun onNothingSelected(p0: AdapterView<*>?) {
@@ -365,27 +355,65 @@ class Activity4Play : AppCompatActivity() {
         spinner.adapter = arrayAdapterSpinner
     }
 
+    // ------------------------------ Create sound ------------------------------
 
-    // ------------------------------ Stop Recording ------------------------------
+    private fun createSound(nb: Int){
+        val duration = 0.5     // In second
+        val nbPoints = sampleRate * duration
+        when(nb){
+            0 -> {
+                // ---------- Sinus ----------
+                val f = 440.0           // In Hertz
+                createdSound = ArrayList<Short>()
+                createdSound?.let {
+                    for (i in 1..(duration * sampleRate).toInt()) {
+                        it.add(Math.floor(Math.sin(2 * Math.PI * f * i / sampleRate) * 32767).toShort())        // For now we send a sinus
+                    }
+                }
+            }
+            // ---------- White noise ----------
+            1 -> {
+                createdSound = ArrayList<Short>()
+                createdSound?.let {
+                    for (i in 1..(duration * sampleRate).toInt()) {
+                        it.add((-32768..32767).random().toShort())
+                    }
+                }
+            }
+        }
+        updateGraphSound()
+    }
 
-
-    private fun updateGraphRecorder() {
+    private fun updateGraphSound() {
         // Used to plot the recorded Sound
         createdSound?.let {
             // Create the DataPoint
             val dataPoints: List<DataPoint> = it.mapIndexed { index, sh ->
                 DataPoint(
-                    index.toDouble() / recorderSampleRate.toDouble(),
+                    index.toDouble() / sampleRate.toDouble(),
                     sh.toDouble()
                 )
             }
             val dataPointsArray: Array<DataPoint> = listToArray<DataPoint>(dataPoints)
             val series = LineGraphSeries<DataPoint>(dataPointsArray)
 
-            graph_waveform_recorded.removeAllSeries()
-            graph_waveform_recorded.addSeries(series)
-            graph_waveform_recorded.setTitle("Recorded")
-            graph_waveform_recorded.getViewport().setScalable(true)
+            graph_waveform_sound.removeAllSeries()
+            graph_waveform_sound.addSeries(series)
+            graph_waveform_sound.setTitle("Recorded")
+            graph_waveform_sound.getViewport().setScalable(true)
+        }
+    }
+
+    // ------------------------------ Play sound ------------------------------
+
+    private fun playSound(){
+        createdSound?.let{itCreatedSound ->
+            val createdSoundArray: ShortArray = ShortArray(itCreatedSound.size){i ->
+                itCreatedSound[i]
+            }
+            val track = AudioTrack( AudioManager.STREAM_ALARM, sampleRate, playerChannels, playerAudioEncoding, itCreatedSound.size, AudioTrack.MODE_STATIC)
+            track.write(createdSoundArray, 0, itCreatedSound.size)
+            track.play()
         }
     }
 
