@@ -30,6 +30,7 @@ import com.e.sslapp.v2.Activity2Manual
 import com.e.sslapp.v3.Activity3Handler
 import com.e.sslapp.R
 import com.e.sslapp.customElements.BluetoothSpeakerPosition
+import com.e.sslapp.customElements.BluetoothSpeakerSound
 import kotlinx.android.synthetic.main.activity4_speaker.*
 import kotlinx.android.synthetic.main.activity4_speaker.button_connect_bluetooth
 import kotlinx.android.synthetic.main.activity4_speaker.button_connection
@@ -94,11 +95,6 @@ class Activity4Speaker : AppCompatActivity() {
         1024 // want to play 2048 (2K) since 2 bytes we use only 1024
     private var bytesPerElement: Int = 2 // 2 bytes in 16bit format
 
-    // ---------- Handle the Sound ----------
-    private var spinnerChoices: ArrayList<String> = ArrayList<String>()
-    private var arrayAdapterSpinner: ArrayAdapter<String>? = null
-    private var createdSound: ArrayList<Short>? = null     // The sound recorder by the phone
-
     // ---------- Bluetooth ----------
     private var bluetoothAdapter: BluetoothAdapter? = null
     private var connectedBluetoothDevice: BluetoothDevice? = null
@@ -162,6 +158,10 @@ class Activity4Speaker : AppCompatActivity() {
                 startConnection()
                 readPositionMessage()
 
+                // TODO: Put a while true
+
+                readSoundMessage()
+                updateGraphSound()
                 /*
                 readTriggerMessage()
                 startRecording()
@@ -392,36 +392,9 @@ class Activity4Speaker : AppCompatActivity() {
 
     // ------------------------------ Create sound ------------------------------
 
-    private fun createSound(nb: Int){
-        val duration = 0.5     // In second
-        val nbPoints = sampleRate * duration
-        when(nb){
-            0 -> {
-                // ---------- Sinus ----------
-                val f = 440.0           // In Hertz
-                createdSound = ArrayList<Short>()
-                createdSound?.let {
-                    for (i in 1..(duration * sampleRate).toInt()) {
-                        it.add(Math.floor(Math.sin(2 * Math.PI * f * i / sampleRate) * 32767).toShort())        // For now we send a sinus
-                    }
-                }
-            }
-            // ---------- White noise ----------
-            1 -> {
-                createdSound = ArrayList<Short>()
-                createdSound?.let {
-                    for (i in 1..(duration * sampleRate).toInt()) {
-                        it.add((-32768..32767).random().toShort())
-                    }
-                }
-            }
-        }
-        updateGraphSound()
-    }
-
     private fun updateGraphSound() {
         // Used to plot the recorded Sound
-        createdSound?.let {
+        soundToPlay?.let {
             // Create the DataPoint
             val dataPoints: List<DataPoint> = it.mapIndexed { index, sh ->
                 DataPoint(
@@ -441,6 +414,7 @@ class Activity4Speaker : AppCompatActivity() {
 
     // ------------------------------ Play sound ------------------------------
 
+    /*
     private fun playSound(){
         createdSound?.let{itCreatedSound ->
             val createdSoundArray: ShortArray = ShortArray(itCreatedSound.size){i ->
@@ -451,6 +425,8 @@ class Activity4Speaker : AppCompatActivity() {
             track.play()
         }
     }
+
+     */
 
     /*
     private fun playDelayedSound(){
@@ -545,6 +521,20 @@ class Activity4Speaker : AppCompatActivity() {
         }
     }
 
+
+    private fun readSoundMessage(){
+        text_view_state.text = "Getting the sound to play"
+        try {
+            val message = readMessage()
+            val messageJSON = Klaxon().parse<BluetoothSpeakerSound>(message)
+            startPlay = messageJSON?.start
+            soundToPlay = messageJSON?.sound
+            text_start_play.text = startPlay.toString()
+        } catch (e: KlaxonException){
+            Log.e("readTriggerData", "Cannot parse the data", e)
+            text_start_play.text = e.toString()
+        }
+    }
 }
 
 
