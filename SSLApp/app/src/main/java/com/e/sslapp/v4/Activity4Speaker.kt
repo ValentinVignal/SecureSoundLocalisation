@@ -177,6 +177,7 @@ class Activity4Speaker : AppCompatActivity() {
         val intent = this.intent
         debug = intent.getBooleanExtra("debug", debug)
         saveRecord = intent.getBooleanExtra("saveRecord", saveRecord)
+        connectedBluetoothDevice = intent.getParcelableExtra("connectedBluetoothDevice")
     }
 
     private fun checkPermission(): Boolean {
@@ -353,6 +354,7 @@ class Activity4Speaker : AppCompatActivity() {
         // ----- Put Extra -----
         intent.putExtra("debug", debug)     // Debug value
         intent.putExtra("saveRecord", saveRecord)
+        intent.putExtra("previousActivity", "Speaker")
         // ----- Start activity -----
         startActivity(intent)
     }
@@ -427,15 +429,18 @@ class Activity4Speaker : AppCompatActivity() {
     // ------------------------------ Bluetooth ------------------------------
 
     private fun getUUID(){
-        val s = "ae465fd9-2d3b-a4c6-4385-ea69b4c1e23${form_speaker_number.toString().toInt() - 1}"
+        val s = "ae465fd9-2d3b-a4c6-4385-ea69b4c1e23${speakerNumber - 1}"
         uuid = UUID.fromString(s)
     }
 
     private fun startConnection() {
         text_view_state.text = "Initialazing connection..."
         try{
+            println("before the soeaker number")
             speakerNumber = form_speaker_number.text.toString().toInt()
+            println("before the UUID")
             getUUID()
+            println("Got the UUID")
             socket = connectedBluetoothDevice?.createRfcommSocketToServiceRecord(uuid)
             socket?.connect()
             inputStream = socket?.inputStream
