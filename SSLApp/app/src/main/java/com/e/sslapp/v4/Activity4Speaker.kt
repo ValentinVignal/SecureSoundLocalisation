@@ -32,6 +32,7 @@ import com.e.sslapp.v3.Activity3Handler
 import com.e.sslapp.R
 import com.e.sslapp.customElements.BluetoothSpeakerPosition
 import com.e.sslapp.customElements.BluetoothSpeakerSound
+import com.e.sslapp.customElements.BluetoothSpeakerTrueStart
 import kotlinx.android.synthetic.main.activity4_speaker.*
 import kotlinx.android.synthetic.main.activity4_speaker.button_connect_bluetooth
 import kotlinx.android.synthetic.main.activity4_speaker.button_connection
@@ -415,6 +416,7 @@ class Activity4Speaker : AppCompatActivity() {
     // ------------------------------ Play sound ------------------------------
 
     private fun playSound(){
+        text_view_state.text = "Prepare for playing the sound..."
         soundToPlay?.let{itSoundToPlay ->
             val createdSoundArray: ShortArray = ShortArray(itSoundToPlay.size){i ->
                 itSoundToPlay[i]
@@ -427,6 +429,7 @@ class Activity4Speaker : AppCompatActivity() {
                 handler.postDelayed({
                     startPlayTruth = Calendar.getInstance().timeInMillis
                     track.play()
+                    sendStartPlayTruth()
                 }, startOffset)
             }
         }
@@ -489,7 +492,7 @@ class Activity4Speaker : AppCompatActivity() {
     }
 
     private fun readPositionMessage(){
-        text_view_state.text = "Getting the position"
+        text_view_state.text = "Getting the position..."
         try {
             val message = readMessage()
             val messageJSON = Klaxon().parse<BluetoothSpeakerPosition>(message)
@@ -506,7 +509,7 @@ class Activity4Speaker : AppCompatActivity() {
 
 
     private fun readSoundMessage(){
-        text_view_state.text = "Getting the sound to play"
+        text_view_state.text = "Getting the sound to play..."
         try {
             val message = readMessage()
             val messageJSON = Klaxon().parse<BluetoothSpeakerSound>(message)
@@ -516,6 +519,24 @@ class Activity4Speaker : AppCompatActivity() {
         } catch (e: KlaxonException){
             Log.e("readTriggerData", "Cannot parse the data", e)
             text_start_play.text = e.toString()
+        }
+    }
+
+    private fun sendStartPlayTruth(){
+        text_view_state.text = "Send the True Start Date"
+        startPlayTruth?.let{itStartPlayTruth ->
+            val startPlayTruthString = Klaxon().toJsonString(
+                BluetoothSpeakerTrueStart(start=itStartPlayTruth)
+            )
+            text_start_play_true.text = itStartPlayTruth.toString()
+            try {
+                outputStream?.write(startPlayTruthString.toByteArray())
+                outputStream?.flush()
+                Log.i("sendStartPlayTruth", "Sent")
+            } catch (e: Exception) {
+                Log.e("sendStartPlayTruth", "Cannot send", e)
+            }
+            Toast.makeText(this, "Message sent", Toast.LENGTH_SHORT).show()
         }
     }
 }

@@ -27,6 +27,6 @@ data class BluetoothSpeakerSound(
     val sound: ArrayList<Short>
 )
 
-data class classBluetoothSpeakerTrueStart(
+data class BluetoothSpeakerTrueStart(
     val start: Long
 )
