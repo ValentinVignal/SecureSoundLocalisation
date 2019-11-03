@@ -29,9 +29,9 @@ import com.e.sslapp.v2.Activity2Manual
 import com.e.sslapp.v3.Activity3Handler
 import com.e.sslapp.R
 import com.beust.klaxon.*
-import com.e.sslapp.customElements.BluetoothAnswer
+import com.e.sslapp.customElements.bluetoothRecordAnswer
 import com.e.sslapp.customElements.BluetoothRecord
-import com.e.sslapp.customElements.BluetoothTrigger
+import com.e.sslapp.customElements.BluetoothRecordTrigger
 import com.jjoe64.graphview.series.DataPoint
 import com.jjoe64.graphview.series.LineGraphSeries
 import kotlinx.android.synthetic.main.activity4_record.*
@@ -302,6 +302,13 @@ class Activity4Record : AppCompatActivity() {
                     Log.d("onOptionItemSelected", "setting_save_record_pressed")
                 }
             }
+            R.id.activity_speaker -> {
+                if (debug) {
+                    Log.d("onOptionsItemSelected", "activity speaker pressed")
+                }
+                changeActivity(Activity4Speaker::class.java)
+                return true
+            }
 
             // -------------------- Version menu --------------------
             R.id.version_1_0 -> {
@@ -557,7 +564,7 @@ class Activity4Record : AppCompatActivity() {
         text_view_state.text = "Getting Triggering Messages..."
         try {
             val message = readMessage()
-            val messageJSON = Klaxon().parse<BluetoothTrigger>(message)
+            val messageJSON = Klaxon().parse<BluetoothRecordTrigger>(message)
             recordStart = messageJSON?.start
             recordDuration = messageJSON?.duration
             text_start.text = recordStart.toString()
@@ -632,7 +639,7 @@ class Activity4Record : AppCompatActivity() {
         text_view_state.text = "Reading Acceptation Answer..."
         try{
             val message = readMessage()
-            val messageJSON = Klaxon().parse<BluetoothAnswer>(message)
+            val messageJSON = Klaxon().parse<bluetoothRecordAnswer>(message)
             accepted = messageJSON?.accepted
             accepted?.let{it->
                 if(it){
