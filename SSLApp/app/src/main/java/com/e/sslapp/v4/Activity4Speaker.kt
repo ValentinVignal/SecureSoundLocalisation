@@ -13,6 +13,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import android.media.AudioTrack
+import android.os.Handler
 import android.view.Menu
 import android.view.MenuItem
 import androidx.appcompat.widget.Toolbar
@@ -162,9 +163,8 @@ class Activity4Speaker : AppCompatActivity() {
 
                 readSoundMessage()
                 updateGraphSound()
+                playSound()
                 /*
-                readTriggerMessage()
-                startRecording()
 
                  */
             }
@@ -414,40 +414,23 @@ class Activity4Speaker : AppCompatActivity() {
 
     // ------------------------------ Play sound ------------------------------
 
-    /*
     private fun playSound(){
-        createdSound?.let{itCreatedSound ->
-            val createdSoundArray: ShortArray = ShortArray(itCreatedSound.size){i ->
-                itCreatedSound[i]
+        soundToPlay?.let{itSoundToPlay ->
+            val createdSoundArray: ShortArray = ShortArray(itSoundToPlay.size){i ->
+                itSoundToPlay[i]
             }
-            val track = AudioTrack( AudioManager.STREAM_ALARM, sampleRate, playerChannels, playerAudioEncoding, itCreatedSound.size, AudioTrack.MODE_STATIC)
-            track.write(createdSoundArray, 0, itCreatedSound.size)
-            track.play()
-        }
-    }
-
-     */
-
-    /*
-    private fun playDelayedSound(){
-        createdSound?.let{itCreatedSound ->
-            val createdSoundArray: ShortArray = ShortArray(itCreatedSound.size){i ->
-                itCreatedSound[i]
-            }
-            val track = AudioTrack( AudioManager.STREAM_ALARM, sampleRate, playerChannels, playerAudioEncoding, itCreatedSound.size, AudioTrack.MODE_STATIC)
-            track.write(createdSoundArray, 0, itCreatedSound.size)
+            val track = AudioTrack( AudioManager.STREAM_ALARM, sampleRate, playerChannels, playerAudioEncoding, itSoundToPlay.size, AudioTrack.MODE_STATIC)
+            track.write(createdSoundArray, 0, itSoundToPlay.size)
             val handler = Handler()
-            val startOffset = Math.floor(form_offset.text.toString().toDouble() * 1000).toLong()
-            val startTime = Calendar.getInstance().timeInMillis + startOffset
-            handler.postDelayed({
-                track.play()
-            }, startOffset)
+            startPlay?.let{itStartPlay ->
+                val startOffset = itStartPlay - Calendar.getInstance().timeInMillis
+                handler.postDelayed({
+                    startPlayTruth = Calendar.getInstance().timeInMillis
+                    track.play()
+                }, startOffset)
+            }
         }
-
     }
-
-     */
-
     // ------------------------------ Bluetooth ------------------------------
 
     private fun startConnection() {
