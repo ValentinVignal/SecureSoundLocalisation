@@ -10,6 +10,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import android.media.AudioTrack
+import android.os.Handler
 import android.view.Menu
 import android.view.MenuItem
 import androidx.appcompat.widget.Toolbar
@@ -26,8 +27,11 @@ import com.e.sslapp.v1.Activity1Manual
 import com.e.sslapp.v2.Activity2Manual
 import com.e.sslapp.v3.Activity3Handler
 import com.e.sslapp.R
+import kotlinx.android.synthetic.main.activity3_handler.*
 import kotlinx.android.synthetic.main.activity3_handler.button_start_recording
 import kotlinx.android.synthetic.main.activity4_play.*
+import kotlinx.android.synthetic.main.activity4_play.form_offset
+import java.util.*
 
 
 class Activity4Play : AppCompatActivity() {
@@ -130,7 +134,7 @@ class Activity4Play : AppCompatActivity() {
             if(debug){
                 Log.d("buttonStartRecordingOnClickListener", "Button Start pressed")
             }
-            playSound()
+            playDelayedSound()
         }
 
         form_spinner_sound.onItemSelectedListener = object: AdapterView.OnItemSelectedListener{
@@ -415,6 +419,23 @@ class Activity4Play : AppCompatActivity() {
             track.write(createdSoundArray, 0, itCreatedSound.size)
             track.play()
         }
+    }
+
+    private fun playDelayedSound(){
+        createdSound?.let{itCreatedSound ->
+            val createdSoundArray: ShortArray = ShortArray(itCreatedSound.size){i ->
+                itCreatedSound[i]
+            }
+            val track = AudioTrack( AudioManager.STREAM_ALARM, sampleRate, playerChannels, playerAudioEncoding, itCreatedSound.size, AudioTrack.MODE_STATIC)
+            track.write(createdSoundArray, 0, itCreatedSound.size)
+            val handler = Handler()
+            val startOffset = Math.floor(form_offset.text.toString().toDouble() * 1000).toLong()
+            val startTime = Calendar.getInstance().timeInMillis + startOffset
+            handler.postDelayed({
+                track.play()
+            }, startOffset)
+        }
+
     }
 
 }
