@@ -22,7 +22,6 @@ import com.jjoe64.graphview.series.LineGraphSeries
 import kotlin.collections.ArrayList
 import java.io.*
 import android.util.Log
-import android.widget.ArrayAdapter
 import android.widget.Toast
 import com.beust.klaxon.Klaxon
 import com.beust.klaxon.KlaxonException
@@ -81,10 +80,6 @@ class Activity4Speaker : AppCompatActivity() {
     private var mSaveRecord: Boolean =
         false // Save the state of the save_record switch at the end of the recording
 
-    // ---------- State of the recorder ----------
-    private var isRecording: Boolean = false
-    private var recordPath: String? = null      // Where data is saved
-
     // ---------- Variables for AudioRecord ----------
     private val sampleRate: Int = 8000  // For emulator, put 44100 for real phone
     private val playerChannels = AudioFormat.CHANNEL_OUT_MONO
@@ -100,7 +95,7 @@ class Activity4Speaker : AppCompatActivity() {
     // ---------- Bluetooth ----------
     private var bluetoothAdapter: BluetoothAdapter? = null
     private var connectedBluetoothDevice: BluetoothDevice? = null
-    private var uuid: UUID = UUID.fromString("ae465fd9-2d3b-a4c6-4385-ea69b4c1e23c")
+    private var uuid: UUID = UUID.fromString("ae465fd9-2d3b-a4c6-4385-ea69b4c1e230")
     private var socket: BluetoothSocket? = null
     private var inputStream: InputStream? = null
     private var outputStream: OutputStream? = null
@@ -142,6 +137,9 @@ class Activity4Speaker : AppCompatActivity() {
         // ---------- Check the permission ----------
         checkPermission()
 
+        // ---------- Bluetooth ----------
+        initBluetooth()
+
         // -------------------- Call when Start button is pressed --------------------
         button_connect_bluetooth.setOnClickListener{
             // val time = Calendar.getInstance().timeInMillis
@@ -158,27 +156,15 @@ class Activity4Speaker : AppCompatActivity() {
                 connected = true
                 graph_waveform_sound.removeAllSeries()
                 startConnection()
-                readPositionMessage()
-
-                // TODO: Put a while true
-
-                readSoundMessage()
-                updateGraphSound()
-                playSound()
-                /*
-
-                 */
+                while(true){
+                    readPositionMessage()
+                    readSoundMessage()
+                    updateGraphSound()
+                    playSound()
+                }
             }
         }
-        /*
-        button_start_recording.setOnClickListener {
-            if(debug){
-                Log.d("buttonStartRecordingOnClickListener", "Button Start pressed")
-            }
-            playDelayedSound()
-        }
 
-         */
         // If no bluetooth device connected, ask for connection:
         if(connectedBluetoothDevice == null){
             changeActivity(Activity4ConnectBluetooth::class.java)
@@ -225,6 +211,10 @@ class Activity4Speaker : AppCompatActivity() {
         if (!onCreate) {      // To avoid infinite loops
             changeActivity(Activity4Speaker::class.java)
         }
+    }
+
+    private fun initBluetooth(){
+        bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
     }
 
     // ------------------------------ Menu ------------------------------
@@ -421,7 +411,7 @@ class Activity4Speaker : AppCompatActivity() {
             val createdSoundArray: ShortArray = ShortArray(itSoundToPlay.size){i ->
                 itSoundToPlay[i]
             }
-            val track = AudioTrack( AudioManager.STREAM_ALARM, sampleRate, playerChannels, playerAudioEncoding, itSoundToPlay.size, AudioTrack.MODE_STATIC)
+            val track = AudioTrack( AudioManager.STREAM_ALARM, sampleRate, playerChannels, playerAudioEncoding, itSoundToPlay.size, playerMode)
             track.write(createdSoundArray, 0, itSoundToPlay.size)
             val handler = Handler()
             startPlay?.let{itStartPlay ->
@@ -436,11 +426,16 @@ class Activity4Speaker : AppCompatActivity() {
     }
     // ------------------------------ Bluetooth ------------------------------
 
+    private fun getUUID(){
+        val s = "ae465fd9-2d3b-a4c6-4385-ea69b4c1e23${form_speaker_number.toString().toInt() - 1}"
+        uuid = UUID.fromString(s)
+    }
+
     private fun startConnection() {
         text_view_state.text = "Initialazing connection..."
         try{
             speakerNumber = form_speaker_number.text.toString().toInt()
-            // TODO: Change uuid with the number of the speaker
+            getUUID()
             socket = connectedBluetoothDevice?.createRfcommSocketToServiceRecord(uuid)
             socket?.connect()
             inputStream = socket?.inputStream
