@@ -13,7 +13,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import android.media.AudioTrack
-import android.os.Handler
 import android.view.Menu
 import android.view.MenuItem
 import androidx.appcompat.widget.Toolbar
@@ -22,15 +21,15 @@ import com.jjoe64.graphview.series.LineGraphSeries
 import kotlin.collections.ArrayList
 import java.io.*
 import android.util.Log
-import android.view.View
-import android.widget.AdapterView
 import android.widget.ArrayAdapter
-import android.widget.Spinner
 import android.widget.Toast
+import com.beust.klaxon.Klaxon
+import com.beust.klaxon.KlaxonException
 import com.e.sslapp.v1.Activity1Manual
 import com.e.sslapp.v2.Activity2Manual
 import com.e.sslapp.v3.Activity3Handler
 import com.e.sslapp.R
+import com.e.sslapp.customElements.BluetoothSpeakerPosition
 import kotlinx.android.synthetic.main.activity4_speaker.*
 import kotlinx.android.synthetic.main.activity4_speaker.button_connect_bluetooth
 import kotlinx.android.synthetic.main.activity4_speaker.button_connection
@@ -110,12 +109,12 @@ class Activity4Speaker : AppCompatActivity() {
     // ----------
     private var connected: Boolean = false
 
-    val speakerNumber: Int = 1
-    val positionX: Float? = null
-    val positionY: Float? = null
-    val startPlay: Long? = null
-    val soundToPlay: ArrayList<Short>? = null
-    val startPlayTruth : Long? = null
+    var speakerNumber: Int = 1
+    var positionX: Float? = null
+    var positionY: Float? = null
+    var startPlay: Long? = null
+    var soundToPlay: ArrayList<Short>? = null
+    var startPlayTruth : Long? = null
 
     // ------------------------------------------------------------
     //                           Methods
@@ -145,9 +144,6 @@ class Activity4Speaker : AppCompatActivity() {
         // ---------- Check the permission ----------
         checkPermission()
 
-        // ---------- Spinner ----------
-        initSpinnerSound()
-
         // -------------------- Call when Start button is pressed --------------------
         button_connect_bluetooth.setOnClickListener{
             // val time = Calendar.getInstance().timeInMillis
@@ -163,11 +159,10 @@ class Activity4Speaker : AppCompatActivity() {
                 button_connection.text = "Stop connection"
                 connected = true
                 graph_waveform_sound.removeAllSeries()
-                //readPositionMessage()
+                startConnection()
+                readPositionMessage()
 
                 /*
-                graph_waveform_recorded.removeAllSeries()
-                startConnection()
                 readTriggerMessage()
                 startRecording()
 
@@ -395,16 +390,6 @@ class Activity4Speaker : AppCompatActivity() {
         return (list as List<T>).toTypedArray()
     }
 
-    // ------------------------------ Choose sound ------------------------------
-
-    private fun initSpinnerSound(){
-        spinnerChoices.add("sin")
-        spinnerChoices.add("white noise")
-        arrayAdapterSpinner = ArrayAdapter<String>(this, android.R.layout.simple_spinner_dropdown_item, spinnerChoices)
-        val spinner = findViewById<Spinner>(R.id.form_spinner_sound)
-        spinner.adapter = arrayAdapterSpinner
-    }
-
     // ------------------------------ Create sound ------------------------------
 
     private fun createSound(nb: Int){
@@ -489,6 +474,21 @@ class Activity4Speaker : AppCompatActivity() {
 
     // ------------------------------ Bluetooth ------------------------------
 
+    private fun startConnection() {
+        text_view_state.text = "Initialazing connection..."
+        try{
+            speakerNumber = form_speaker_number.text.toString().toInt()
+            // TODO: Change uuid with the number of the speaker
+            socket = connectedBluetoothDevice?.createRfcommSocketToServiceRecord(uuid)
+            socket?.connect()
+            inputStream = socket?.inputStream
+            outputStream = socket?.outputStream
+            Toast.makeText(this, "Connection started", Toast.LENGTH_SHORT).show()
+        } catch(e: java.io.IOException) {
+            Log.e("start connect", "Couldn't start the connection", e)
+        }
+    }
+
     private fun stopConnection(){
         outputStream?.close()
         inputStream?.close()
@@ -527,6 +527,22 @@ class Activity4Speaker : AppCompatActivity() {
         val text = "Didn't get any text"
         Log.e("readMessage", text)
         return text
+    }
+
+    private fun readPositionMessage(){
+        text_view_state.text = "Getting the position"
+        try {
+            val message = readMessage()
+            val messageJSON = Klaxon().parse<BluetoothSpeakerPosition>(message)
+            positionX = messageJSON?.x
+            positionY = messageJSON?.y
+            text_position_x.text = positionX.toString()
+            text_position_y.text = positionY.toString()
+        } catch (e: KlaxonException){
+            Log.e("readTriggerData", "Cannot parse the data", e)
+            text_position_x.text = e.toString()
+            text_position_y.text = e.toString()
+        }
     }
 
 }
