@@ -1,6 +1,9 @@
 package com.e.sslapp.v4
 
 import android.Manifest
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothSocket
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.AudioFormat
@@ -23,14 +26,14 @@ import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Spinner
+import android.widget.Toast
 import com.e.sslapp.v1.Activity1Manual
 import com.e.sslapp.v2.Activity2Manual
 import com.e.sslapp.v3.Activity3Handler
 import com.e.sslapp.R
-import kotlinx.android.synthetic.main.activity3_handler.*
-import kotlinx.android.synthetic.main.activity3_handler.button_start_recording
-import kotlinx.android.synthetic.main.activity4_play.*
-import kotlinx.android.synthetic.main.activity4_play.form_offset
+import kotlinx.android.synthetic.main.activity4_speaker.*
+import kotlinx.android.synthetic.main.activity4_speaker.button_connect_bluetooth
+import kotlinx.android.synthetic.main.activity4_speaker.button_connection
 import java.util.*
 
 
@@ -97,6 +100,22 @@ class Activity4Speaker : AppCompatActivity() {
     private var arrayAdapterSpinner: ArrayAdapter<String>? = null
     private var createdSound: ArrayList<Short>? = null     // The sound recorder by the phone
 
+    // ---------- Bluetooth ----------
+    private var bluetoothAdapter: BluetoothAdapter? = null
+    private var connectedBluetoothDevice: BluetoothDevice? = null
+    private var uuid: UUID = UUID.fromString("ae465fd9-2d3b-a4c6-4385-ea69b4c1e23c")
+    private var socket: BluetoothSocket? = null
+    private var inputStream: InputStream? = null
+    private var outputStream: OutputStream? = null
+    // ----------
+    private var connected: Boolean = false
+
+    val speakerNumber: Int = 1
+    val positionX: Float? = null
+    val positionY: Float? = null
+    val startPlay: Long? = null
+    val soundToPlay: ArrayList<Short>? = null
+    val startPlayTruth : Long? = null
 
     // ------------------------------------------------------------
     //                           Methods
@@ -130,6 +149,32 @@ class Activity4Speaker : AppCompatActivity() {
         initSpinnerSound()
 
         // -------------------- Call when Start button is pressed --------------------
+        button_connect_bluetooth.setOnClickListener{
+            // val time = Calendar.getInstance().timeInMillis
+            // Log.i("time", "Time: $time")
+            changeActivity(Activity4ConnectBluetooth::class.java)
+        }
+        button_connection.setOnClickListener{
+            if(connected){
+                button_connection.text = "Start connection"
+                connected = false
+                stopConnection()
+            } else {
+                button_connection.text = "Stop connection"
+                connected = true
+                graph_waveform_sound.removeAllSeries()
+                //readPositionMessage()
+
+                /*
+                graph_waveform_recorded.removeAllSeries()
+                startConnection()
+                readTriggerMessage()
+                startRecording()
+
+                 */
+            }
+        }
+        /*
         button_start_recording.setOnClickListener {
             if(debug){
                 Log.d("buttonStartRecordingOnClickListener", "Button Start pressed")
@@ -137,19 +182,13 @@ class Activity4Speaker : AppCompatActivity() {
             playDelayedSound()
         }
 
-        form_spinner_sound.onItemSelectedListener = object: AdapterView.OnItemSelectedListener{
-            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                if(debug){
-                    Log.d("Spinner.onItemSelected", "position: $position")
-                }
-                createSound(position)
-            }
-
-            override fun onNothingSelected(p0: AdapterView<*>?) {
-                form_spinner_sound.setSelection(0)
-            }
+         */
+        // If no bluetooth device connected, ask for connection:
+        if(connectedBluetoothDevice == null){
+            changeActivity(Activity4ConnectBluetooth::class.java)
+        } else {
+            text_paired_device.text = "${connectedBluetoothDevice?.name} - ${connectedBluetoothDevice?.address}"
         }
-
     }
 
     private fun getAllIntent(){
@@ -428,6 +467,7 @@ class Activity4Speaker : AppCompatActivity() {
         }
     }
 
+    /*
     private fun playDelayedSound(){
         createdSound?.let{itCreatedSound ->
             val createdSoundArray: ShortArray = ShortArray(itCreatedSound.size){i ->
@@ -443,6 +483,50 @@ class Activity4Speaker : AppCompatActivity() {
             }, startOffset)
         }
 
+    }
+
+     */
+
+    // ------------------------------ Bluetooth ------------------------------
+
+    private fun stopConnection(){
+        outputStream?.close()
+        inputStream?.close()
+        socket?.close()
+        outputStream = null
+        inputStream = null
+        socket = null
+        Toast.makeText(this, "Connection stopped", Toast.LENGTH_SHORT).show()
+        text_view_state.text = "Press START CONNECTION"
+    }
+
+    private fun readMessage(): String{
+        try{
+            var available = inputStream?.available()
+            while(available == 0){
+                Thread.sleep(200)
+                available = inputStream?.available()
+            }
+            available?.let{ itAvailable ->
+                val bytes = ByteArray(itAvailable)
+                Log.i("readMessage", "Reading")
+                inputStream?.read(bytes, 0, itAvailable)
+                Log.i("readMessage", "InputStream $inputStream")
+                Log.i("readMessage", "available $itAvailable")
+                val text = String(bytes)
+                Log.i("readMessage", "Message received: text $ text")
+                return text
+            }
+        } catch (e: java.lang.Exception){
+            Log.e("readMessage", "Cannot read data", e)
+            return e.toString()
+        } catch (e: java.lang.NullPointerException){
+            Log.e("readMessage", "Input Stream not available", e)
+            return e.toString()
+        }
+        val text = "Didn't get any text"
+        Log.e("readMessage", text)
+        return text
     }
 
 }
