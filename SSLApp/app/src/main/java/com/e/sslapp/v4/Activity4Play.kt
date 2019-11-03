@@ -257,6 +257,13 @@ class Activity4Play : AppCompatActivity() {
                 }
                 return true
             }
+            R.id.activity_speaker -> {
+                if (debug) {
+                    Log.d("onOptionsItemSelected", "activity speaker pressed")
+                }
+                changeActivity(Activity4Speaker::class.java)
+                return true
+            }
             // -------------------- Settings Menu --------------------
             R.id.settings_debug -> {
                 Log.d("onOptionsItemSelected", "settings debug pressed")

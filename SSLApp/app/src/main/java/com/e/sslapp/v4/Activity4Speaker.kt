@@ -4,40 +4,37 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.AudioFormat
-import android.media.MediaRecorder
+import android.media.AudioManager
 import android.os.Bundle
-import android.os.Environment
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import android.media.AudioRecord
+import android.media.AudioTrack
+import android.os.Handler
 import android.view.Menu
 import android.view.MenuItem
 import androidx.appcompat.widget.Toolbar
 import com.jjoe64.graphview.series.DataPoint
 import com.jjoe64.graphview.series.LineGraphSeries
-import java.util.*
 import kotlin.collections.ArrayList
 import java.io.*
-import java.lang.Math.*
 import android.util.Log
+import android.view.View
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
+import android.widget.Spinner
 import com.e.sslapp.v1.Activity1Manual
 import com.e.sslapp.v2.Activity2Manual
-import com.e.sslapp.v3.Activity3Manual
 import com.e.sslapp.v3.Activity3Handler
 import com.e.sslapp.R
-import java.util.Calendar
-import android.os.Handler
-import android.view.View
-import android.widget.Adapter
-import android.widget.AdapterView
 import kotlinx.android.synthetic.main.activity3_handler.*
-import kotlinx.android.synthetic.main.activity3_handler.text_view_state
-import kotlinx.android.synthetic.main.activity4_connect_bluetooth.*
+import kotlinx.android.synthetic.main.activity3_handler.button_start_recording
+import kotlinx.android.synthetic.main.activity4_play.*
+import kotlinx.android.synthetic.main.activity4_play.form_offset
+import java.util.*
 
 
-class Activity4Handler : AppCompatActivity() {
+class Activity4Speaker : AppCompatActivity() {
 
     // ------------------------------------------------------------
     //                           Static object
@@ -84,23 +81,21 @@ class Activity4Handler : AppCompatActivity() {
     private var recordPath: String? = null      // Where data is saved
 
     // ---------- Variables for AudioRecord ----------
-    private val recorderSampleRate: Int = 8000  // For emulator, put 44100 for real phone
-    private val recorderChannels = AudioFormat.CHANNEL_IN_MONO
-    private val recorderAudioEncoding = AudioFormat.ENCODING_PCM_16BIT
-    private var recorder: AudioRecord? = null
-    private var recordingThread: Thread? = null
+    private val sampleRate: Int = 8000  // For emulator, put 44100 for real phone
+    private val playerChannels = AudioFormat.CHANNEL_OUT_MONO
+    private val playerAudioEncoding = AudioFormat.ENCODING_PCM_16BIT
+    private val playerMode = AudioTrack.MODE_STATIC
+
+
+
     private var bufferElements2Rec: Int =
         1024 // want to play 2048 (2K) since 2 bytes we use only 1024
     private var bytesPerElement: Int = 2 // 2 bytes in 16bit format
-    private var bufferSize: Int = AudioRecord.getMinBufferSize(
-        recorderSampleRate,
-        recorderChannels, recorderAudioEncoding
-    )
 
-    // ---------- Handle the recording datas ----------
-    private val rootDirectory: File =
-        File(Environment.getExternalStorageDirectory().absolutePath + "/SSL")       // Diretory where it is gonna be saved
-    private var recordedSound: ArrayList<Short>? = null     // The sound recorder by the phone
+    // ---------- Handle the Sound ----------
+    private var spinnerChoices: ArrayList<String> = ArrayList<String>()
+    private var arrayAdapterSpinner: ArrayAdapter<String>? = null
+    private var createdSound: ArrayList<Short>? = null     // The sound recorder by the phone
 
 
     // ------------------------------------------------------------
@@ -118,7 +113,7 @@ class Activity4Handler : AppCompatActivity() {
         changeTheme(debug, onCreate = true)
 
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity4_handler)
+        setContentView(R.layout.activity4_speaker)
 
         // ---------- Handle Toolbar ----------
         toolbar = findViewById(R.id.activity_toolbar)
@@ -131,16 +126,27 @@ class Activity4Handler : AppCompatActivity() {
         // ---------- Check the permission ----------
         checkPermission()
 
-        // ----- Create the directory if it doesn't exist -----
-        if (!rootDirectory.exists()) {
-            rootDirectory.mkdirs()
-        }
+        // ---------- Spinner ----------
+        initSpinnerSound()
 
         // -------------------- Call when Start button is pressed --------------------
         button_start_recording.setOnClickListener {
-            if (checkPermission()) {
-                // We can start the recording
-                startRecording()
+            if(debug){
+                Log.d("buttonStartRecordingOnClickListener", "Button Start pressed")
+            }
+            playDelayedSound()
+        }
+
+        form_spinner_sound.onItemSelectedListener = object: AdapterView.OnItemSelectedListener{
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                if(debug){
+                    Log.d("Spinner.onItemSelected", "position: $position")
+                }
+                createSound(position)
+            }
+
+            override fun onNothingSelected(p0: AdapterView<*>?) {
+                form_spinner_sound.setSelection(0)
             }
         }
 
@@ -182,7 +188,7 @@ class Activity4Handler : AppCompatActivity() {
             setTheme(R.style.LightTheme)
         }
         if (!onCreate) {      // To avoid infinite loops
-            changeActivity(Activity4Handler::class.java)
+            changeActivity(Activity4Speaker::class.java)
         }
     }
 
@@ -197,8 +203,8 @@ class Activity4Handler : AppCompatActivity() {
 
     private fun initiateMenuItems(menu: Menu?){
         // ----- Activities -----
-        val activity = menu?.findItem(R.id.activity_handler)
-        activity?.title = "-> Handler <-"
+        val activity = menu?.findItem(R.id.activity_speaker)
+        activity?.title = "-> Speaker <-"
         // ----- Settings -----
         val settingDebug = menu?.findItem(R.id.settings_debug)
         settingDebug?.title = if (debug) "Debug: ON" else "Debug: OFF"
@@ -228,6 +234,7 @@ class Activity4Handler : AppCompatActivity() {
                 if (debug) {
                     Log.d("onOptionsItemSelected", "activity handler pressed")
                 }
+                changeActivity(Activity4Handler::class.java)
                 return true
             }
             R.id.activity_bluetooth-> {
@@ -255,7 +262,6 @@ class Activity4Handler : AppCompatActivity() {
                 if (debug) {
                     Log.d("onOptionsItemSelected", "activity speaker pressed")
                 }
-                changeActivity(Activity4Speaker::class.java)
                 return true
             }
             // -------------------- Settings Menu --------------------
@@ -350,188 +356,93 @@ class Activity4Handler : AppCompatActivity() {
         return (list as List<T>).toTypedArray()
     }
 
-    // ------------------------------ Start Recording ------------------------------
+    // ------------------------------ Choose sound ------------------------------
 
-    private fun startRecording() {
-        if (debug) {
-            // val currentDate = LocalDateTime.now()
-            // var milliseconds = currentDate.getTime()
-            val currentTime = Calendar.getInstance().timeInMillis
-            Log.d("startRecording", "Button start pressed at $currentTime")
-        }
-        if (!isRecording) {
-            val startOffset = floor(form_offset.text.toString().toDouble() * 1000).toLong()
-            val startTime = Calendar.getInstance().timeInMillis + startOffset
-            val duration = floor(form_duration.text.toString().toDouble() * 1000).toLong()
-            val stopTime = startTime + duration
-            if (debug) {
-                Log.d(
-                    "startRecording",
-                    "offset : $startOffset - startTime : $startTime - duration : $duration - stopTime : $stopTime"
-                )
-            }
-            try {
-                prepareRecorder()
-                recorder?.let { r ->
-                    /*
-                    recordingThread =
-                        Thread(Runnable { writeAudioDataToFile() }, "AudioRecorder Thread")
-                    r.startRecording()
-                    recordingThread?.start()
-                     */
-                    val handler = Handler()
-                    r.startRecording()
-                    handler.postDelayed({ writeAudioDataToFile(stopTime) }, startOffset)
-                }
-
-            } catch (e: IllegalStateException) {
-                e.printStackTrace()
-            } catch (e: IOException) {
-                e.printStackTrace()
-            }
-        } else {
-            Toast.makeText(this, "You are already recording", Toast.LENGTH_SHORT).show()
-
-        }
+    private fun initSpinnerSound(){
+        spinnerChoices.add("sin")
+        spinnerChoices.add("white noise")
+        arrayAdapterSpinner = ArrayAdapter<String>(this, android.R.layout.simple_spinner_dropdown_item, spinnerChoices)
+        val spinner = findViewById<Spinner>(R.id.form_spinner_sound)
+        spinner.adapter = arrayAdapterSpinner
     }
 
-    private fun prepareRecorder() {
-        recordedSound = ArrayList<Short>()      // Reset the recorded Sound
-        isRecording = true
-        Toast.makeText(this, "Recording started!", Toast.LENGTH_SHORT).show()
-        text_view_state.text = "Recording..."
-        recorder = AudioRecord(
-            MediaRecorder.AudioSource.MIC,
-            recorderSampleRate, recorderChannels,
-            recorderAudioEncoding, bufferElements2Rec * bytesPerElement
-        )
-    }
+    // ------------------------------ Create sound ------------------------------
 
-    private fun writeAudioDataToFile(stopDate: Long) {
-        // Write the output audio in byte
-        if (debug) {
-            val currentTime = Calendar.getInstance().timeInMillis
-            Log.d("writeAudioDataToFile", "start recording at $currentTime")
-        }
-
-        val sData = ShortArray(bufferElements2Rec)
-
-        if (debug) {
-            val currentTime = Calendar.getInstance().timeInMillis
-            Log.d("writeAudioDataToFile", "Just before while at $currentTime")
-        }
-        while (stopDate > Calendar.getInstance().timeInMillis) {
-            // gets the voice output from microphone to byte format
-
-            recorder?.read(sData, 0, bufferElements2Rec)
-            // val iData: IntArray = IntArray(sData.size){ sData[it].toInt() }
-            sData.forEach { recordedSound?.add(it) }
-            if (debug) {
-                println(
-                    "Short writing to file${Arrays.toString(sData.sliceArray(1..10))}..." +
-                            "${sData.takeLast(10)} -- size : ${sData.size}"
-                )
-                println("Size of ArrayList: ${recordedSound?.size} -- ${recordedSound?.takeLast(10)}")
-            }
-        }
-        if (debug) {
-            val currentTime = Calendar.getInstance().timeInMillis
-            Log.d("writeAudioDataToFile", "stop recording at $currentTime")
-        }
-        stopRecording()
-    }
-
-    // ------------------------------ Stop Recording ------------------------------
-
-    private fun stopRecording() {
-        // stops the recording activity
-        if (debug) {
-            val currentTime = Calendar.getInstance().timeInMillis
-            Log.d("stopRecording", "In function at time $currentTime")
-        }
-        if (isRecording) {
-            isRecording = false
-            if (null != recorder) {
-                isRecording = false
-                recorder?.let { r ->
-                    r.stop()
-                    r.release()
-                }
-                recorder = null
-                recordingThread = null
-                if (mSaveRecord) {
-                    Toast.makeText(this, "Recording saved in $recordPath", Toast.LENGTH_SHORT)
-                        .show()
-                } else {
-                    Toast.makeText(this, "Recording stopped", Toast.LENGTH_SHORT).show()
-                }
-                text_view_state.text = "Press Start to record"
-
-                // ----- Do the computation with the recordedSound ----
-                cleanRecordedSound()        // Clean it
-                updateGraphRecorder()       // Plot it
-                //computeConvolutedSound()    // Compute the convolution with the sentSound
-                //updateGraphConvolutedSound()        // Plot the convoluted Sound
-            }
-        } else {
-            Toast.makeText(this, "You are not recording right now!", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    private fun cleanRecordedSound() {
-        recordedSound?.let {
-            // Check number of zeros at the beginning
-            var nbZerosBeginning = 0
-            for (i in 0 until it.size) {
-                if (it[i].toInt() == 0) {
-                    nbZerosBeginning++
-                } else {
-                    break
+    private fun createSound(nb: Int){
+        val duration = 0.5     // In second
+        val nbPoints = sampleRate * duration
+        when(nb){
+            0 -> {
+                // ---------- Sinus ----------
+                val f = 440.0           // In Hertz
+                createdSound = ArrayList<Short>()
+                createdSound?.let {
+                    for (i in 1..(duration * sampleRate).toInt()) {
+                        it.add(Math.floor(Math.sin(2 * Math.PI * f * i / sampleRate) * 32767).toShort())        // For now we send a sinus
+                    }
                 }
             }
-            // Check number of zeros at the beginning
-            var nbZerosEnding = 0
-            for (i in 0 until it.size) {
-                if (it[i].toInt() == 0) {
-                    nbZerosEnding++
-                } else {
-                    break
+            // ---------- White noise ----------
+            1 -> {
+                createdSound = ArrayList<Short>()
+                createdSound?.let {
+                    for (i in 1..(duration * sampleRate).toInt()) {
+                        it.add((-32768..32767).random().toShort())
+                    }
                 }
             }
-            // Remove it
-            if (nbZerosBeginning < it.size - nbZerosEnding){
-                recordedSound = ArrayList(it.subList(nbZerosBeginning, it.size - nbZerosEnding))
-            }
-
-            // Log it
-            if (debug) {
-                Log.d(
-                    "cleanRecordedSound",
-                    "Number of zeros at the: --  beginning : $nbZerosBeginning = ${nbZerosBeginning.toDouble() / recorderSampleRate.toDouble()} -- ending : $nbZerosEnding = ${nbZerosEnding.toDouble() / recorderSampleRate.toDouble()}"
-                )
-            }
-            // Basically : there was just 1024 values==0 at the beginning and the ending of the recorded sound = size of a buffer
         }
+        updateGraphSound()
     }
 
-    private fun updateGraphRecorder() {
+    private fun updateGraphSound() {
         // Used to plot the recorded Sound
-        recordedSound?.let {
+        createdSound?.let {
             // Create the DataPoint
             val dataPoints: List<DataPoint> = it.mapIndexed { index, sh ->
                 DataPoint(
-                    index.toDouble() / recorderSampleRate.toDouble(),
+                    index.toDouble() / sampleRate.toDouble(),
                     sh.toDouble()
                 )
             }
             val dataPointsArray: Array<DataPoint> = listToArray<DataPoint>(dataPoints)
             val series = LineGraphSeries<DataPoint>(dataPointsArray)
 
-            graph_waveform_recorded.removeAllSeries()
-            graph_waveform_recorded.addSeries(series)
-            graph_waveform_recorded.setTitle("Recorded")
-            graph_waveform_recorded.getViewport().setScalable(true)
+            graph_waveform_sound.removeAllSeries()
+            graph_waveform_sound.addSeries(series)
+            graph_waveform_sound.setTitle("Recorded")
+            graph_waveform_sound.getViewport().setScalable(true)
         }
+    }
+
+    // ------------------------------ Play sound ------------------------------
+
+    private fun playSound(){
+        createdSound?.let{itCreatedSound ->
+            val createdSoundArray: ShortArray = ShortArray(itCreatedSound.size){i ->
+                itCreatedSound[i]
+            }
+            val track = AudioTrack( AudioManager.STREAM_ALARM, sampleRate, playerChannels, playerAudioEncoding, itCreatedSound.size, AudioTrack.MODE_STATIC)
+            track.write(createdSoundArray, 0, itCreatedSound.size)
+            track.play()
+        }
+    }
+
+    private fun playDelayedSound(){
+        createdSound?.let{itCreatedSound ->
+            val createdSoundArray: ShortArray = ShortArray(itCreatedSound.size){i ->
+                itCreatedSound[i]
+            }
+            val track = AudioTrack( AudioManager.STREAM_ALARM, sampleRate, playerChannels, playerAudioEncoding, itCreatedSound.size, AudioTrack.MODE_STATIC)
+            track.write(createdSoundArray, 0, itCreatedSound.size)
+            val handler = Handler()
+            val startOffset = Math.floor(form_offset.text.toString().toDouble() * 1000).toLong()
+            val startTime = Calendar.getInstance().timeInMillis + startOffset
+            handler.postDelayed({
+                track.play()
+            }, startOffset)
+        }
+
     }
 
 }
