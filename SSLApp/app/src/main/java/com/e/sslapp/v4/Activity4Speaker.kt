@@ -14,6 +14,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import android.media.AudioTrack
 import android.os.Handler
+import android.provider.CalendarContract
 import android.view.Menu
 import android.view.MenuItem
 import androidx.appcompat.widget.Toolbar
@@ -156,12 +157,11 @@ class Activity4Speaker : AppCompatActivity() {
                 connected = true
                 graph_waveform_sound.removeAllSeries()
                 startConnection()
-                while(true){
-                    readPositionMessage()
-                    readSoundMessage()
-                    updateGraphSound()
-                    playSound()
-                }
+                readPositionMessage()
+
+                readSoundMessage()
+                updateGraphSound()
+                playSound()
             }
         }
 
@@ -411,25 +411,30 @@ class Activity4Speaker : AppCompatActivity() {
         text_view_state.text = "Prepare for playing the sound..."
         soundToPlay?.let{itSoundToPlay ->
             val createdSoundArray: ShortArray = ShortArray(itSoundToPlay.size){i ->
-                itSoundToPlay[i]
+                itSoundToPlay[i].toShort()
             }
             val track = AudioTrack( AudioManager.STREAM_ALARM, sampleRate, playerChannels, playerAudioEncoding, itSoundToPlay.size, playerMode)
             track.write(createdSoundArray, 0, itSoundToPlay.size)
             val handler = Handler()
+            Log.d("playSound", "startPlay $startPlay - currentDate ${Calendar.getInstance().timeInMillis}")
             startPlay?.let{itStartPlay ->
                 val startOffset = itStartPlay - Calendar.getInstance().timeInMillis
                 handler.postDelayed({
-                    startPlayTruth = Calendar.getInstance().timeInMillis
-                    track.play()
-                    sendStartPlayTruth()
+                    playSoundHandled(track)
                 }, startOffset)
             }
         }
     }
+    private fun playSoundHandled(track:AudioTrack){
+        startPlayTruth = Calendar.getInstance().timeInMillis
+        track.play()
+        Log.d("playSoundHandled", "after trackPlay")
+        sendStartPlayTruth()
+    }
     // ------------------------------ Bluetooth ------------------------------
 
     private fun getUUID(){
-        val s = "ae465fd9-2d3b-a4c6-4385-ea69b4c1e23${speakerNumber - 1}"
+        val s = "ae465fd9-2d3b-a4c6-4385-ea69b4c1e23c${speakerNumber - 1}"
         uuid = UUID.fromString(s)
     }
 
@@ -469,16 +474,21 @@ class Activity4Speaker : AppCompatActivity() {
                 Thread.sleep(200)
                 available = inputStream?.available()
             }
-            available?.let{ itAvailable ->
-                val bytes = ByteArray(itAvailable)
-                Log.i("readMessage", "Reading")
-                inputStream?.read(bytes, 0, itAvailable)
-                Log.i("readMessage", "InputStream $inputStream")
-                Log.i("readMessage", "available $itAvailable")
-                val text = String(bytes)
-                Log.i("readMessage", "Message received: text $ text")
-                return text
+            var text = ""
+            while (available != 0){
+                available?.let{ itAvailable ->
+                    val bytes = ByteArray(itAvailable)
+                    Log.i("readMessage", "Reading")
+                    inputStream?.read(bytes, 0, itAvailable)
+                    Log.i("readMessage", "InputStream $inputStream")
+                    Log.i("readMessage", "available $itAvailable")
+                    text += String(bytes)
+                    Log.i("readMessage", "Message received: text $text")
+                    Thread.sleep(100)
+                    available = inputStream?.available()
+                }
             }
+            return text
         } catch (e: java.lang.Exception){
             Log.e("readMessage", "Cannot read data", e)
             return e.toString()
@@ -492,12 +502,14 @@ class Activity4Speaker : AppCompatActivity() {
     }
 
     private fun readPositionMessage(){
+        Log.d("ReadPositionMessage", "in function")
         text_view_state.text = "Getting the position..."
         try {
             val message = readMessage()
             val messageJSON = Klaxon().parse<BluetoothSpeakerPosition>(message)
             positionX = messageJSON?.x
             positionY = messageJSON?.y
+            Log.d("readPositionMessage", "X $positionX, Y $positionY")
             text_position_x.text = positionX.toString()
             text_position_y.text = positionY.toString()
         } catch (e: KlaxonException){
@@ -509,10 +521,12 @@ class Activity4Speaker : AppCompatActivity() {
 
 
     private fun readSoundMessage(){
+        Log.d("ReadSoundMessage", "in function")
         text_view_state.text = "Getting the sound to play..."
         try {
             val message = readMessage()
             val messageJSON = Klaxon().parse<BluetoothSpeakerSound>(message)
+            Log.d("ReadSoundMessage", "Klaxon OK")
             startPlay = messageJSON?.start
             soundToPlay = messageJSON?.sound
             text_start_play.text = startPlay.toString()
