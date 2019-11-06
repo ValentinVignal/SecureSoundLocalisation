@@ -6,37 +6,40 @@ import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothSocket
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Color
 import android.media.AudioFormat
+import android.media.AudioManager
 import android.os.Bundle
-import android.os.Environment
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import android.media.AudioRecord
-import android.media.MediaRecorder
+import android.media.AudioTrack
 import android.os.Handler
+import android.provider.CalendarContract
 import android.view.Menu
 import android.view.MenuItem
 import androidx.appcompat.widget.Toolbar
-import java.util.*
+import com.jjoe64.graphview.series.DataPoint
+import com.jjoe64.graphview.series.LineGraphSeries
 import kotlin.collections.ArrayList
 import java.io.*
 import android.util.Log
+import android.widget.Toast
+import com.beust.klaxon.Klaxon
+import com.beust.klaxon.KlaxonException
 import com.e.sslapp.v1.Activity1Manual
 import com.e.sslapp.v2.Activity2Manual
 import com.e.sslapp.v3.Activity3Handler
 import com.e.sslapp.R
-import com.beust.klaxon.*
-import com.e.sslapp.customElements.bluetoothRecordAnswer
-import com.e.sslapp.customElements.BluetoothRecord
-import com.e.sslapp.customElements.BluetoothRecordTrigger
-import com.jjoe64.graphview.series.DataPoint
-import com.jjoe64.graphview.series.LineGraphSeries
-import kotlinx.android.synthetic.main.activity4_record.*
+import com.e.sslapp.customElements.BluetoothSpeakerPosition
+import com.e.sslapp.customElements.BluetoothSpeakerSound
+import com.e.sslapp.customElements.BluetoothSpeakerTrueStart
+import kotlinx.android.synthetic.main.activity4_speaker.*
+import kotlinx.android.synthetic.main.activity4_speaker.button_connect_bluetooth
+import kotlinx.android.synthetic.main.activity4_speaker.button_connection
+import java.util.*
 
-class Activity4Record : AppCompatActivity() {
+
+class Activity4Speaker : AppCompatActivity() {
 
     // ------------------------------------------------------------
     //                           Static object
@@ -44,6 +47,25 @@ class Activity4Record : AppCompatActivity() {
 
     companion object {
 
+        // --------------------
+        //      Attributs
+        // --------------------
+
+        // var debug: Boolean = false // Use to debug (and for example print in the terminal)
+
+        // --------------------
+        //       Methods
+        // --------------------
+
+        fun newRecordPath(rootDirectory: File): String {
+            var i = 0
+            var nRecordPath = rootDirectory.absolutePath + "/recording_$i.pcm"
+            while (File(nRecordPath).exists()) {
+                i += 1
+                nRecordPath = rootDirectory.absolutePath + "/recording_$i.pcm"
+            }
+            return nRecordPath
+        }
     }
 
     // ------------------------------------------------------------
@@ -59,44 +81,34 @@ class Activity4Record : AppCompatActivity() {
     private var mSaveRecord: Boolean =
         false // Save the state of the save_record switch at the end of the recording
 
-    // ---------- State of the recorder ----------
-    private var isRecording: Boolean = false
-    private var recordPath: String? = null      // Where data is saved
-
     // ---------- Variables for AudioRecord ----------
-    private val recorderSampleRate: Int = 8000  // For emulator, put 44100 for real phone
-    private val recorderChannels = AudioFormat.CHANNEL_IN_MONO
-    private val recorderAudioEncoding = AudioFormat.ENCODING_PCM_16BIT
-    private var recorder: AudioRecord? = null
-    private var recordingThread: Thread? = null
+    private val sampleRate: Int = 8000  // For emulator, put 44100 for real phone
+    private val playerChannels = AudioFormat.CHANNEL_OUT_MONO
+    private val playerAudioEncoding = AudioFormat.ENCODING_PCM_16BIT
+    private val playerMode = AudioTrack.MODE_STATIC
+
+
+
     private var bufferElements2Rec: Int =
         1024 // want to play 2048 (2K) since 2 bytes we use only 1024
     private var bytesPerElement: Int = 2 // 2 bytes in 16bit format
-    private var bufferSize: Int = AudioRecord.getMinBufferSize(
-        recorderSampleRate,
-        recorderChannels, recorderAudioEncoding
-    )
-
-    // ---------- Handle the recording datas ----------
-    private val rootDirectory: File =
-        File(Environment.getExternalStorageDirectory().absolutePath + "/SSL")       // Diretory where it is gonna be saved
-    private var recordedSound: ArrayList<Short>? = null     // The sound recorder by the phone
 
     // ---------- Bluetooth ----------
     private var bluetoothAdapter: BluetoothAdapter? = null
     private var connectedBluetoothDevice: BluetoothDevice? = null
-    private var uuid: UUID = UUID.fromString("ae465fd9-2d3b-a4c6-4385-ea69b4c1e23c")
+    private var uuid: UUID = UUID.fromString("ae465fd9-2d3b-a4c6-4385-ea69b4c1e230")
     private var socket: BluetoothSocket? = null
     private var inputStream: InputStream? = null
     private var outputStream: OutputStream? = null
     // ----------
     private var connected: Boolean = false
-    // ----------
-    private var recordStart: Long? = null
-    private var recordDuration: Long? = null
 
-    private var accepted: Boolean? = null
-
+    var speakerNumber: Int = 1
+    var positionX: Float? = null
+    var positionY: Float? = null
+    var startPlay: Long? = null
+    var soundToPlay: ArrayList<Short>? = null
+    var startPlayTruth : Long? = null
 
     // ------------------------------------------------------------
     //                           Methods
@@ -113,7 +125,7 @@ class Activity4Record : AppCompatActivity() {
         changeTheme(debug, onCreate = true)
 
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity4_record)
+        setContentView(R.layout.activity4_speaker)
 
         // ---------- Handle Toolbar ----------
         toolbar = findViewById(R.id.activity_toolbar)
@@ -126,22 +138,15 @@ class Activity4Record : AppCompatActivity() {
         // ---------- Check the permission ----------
         checkPermission()
 
-        // ----- Create the directory if it doesn't exist -----
-        if (!rootDirectory.exists()) {
-            rootDirectory.mkdirs()
-        }
-
         // ---------- Bluetooth ----------
         initBluetooth()
 
         // -------------------- Call when Start button is pressed --------------------
-
         button_connect_bluetooth.setOnClickListener{
             // val time = Calendar.getInstance().timeInMillis
             // Log.i("time", "Time: $time")
             changeActivity(Activity4ConnectBluetooth::class.java)
         }
-
         button_connection.setOnClickListener{
             if(connected){
                 button_connection.text = "Start connection"
@@ -150,10 +155,13 @@ class Activity4Record : AppCompatActivity() {
             } else {
                 button_connection.text = "Stop connection"
                 connected = true
-                graph_waveform_recorded.removeAllSeries()
+                graph_waveform_sound.removeAllSeries()
                 startConnection()
-                readTriggerMessage()
-                startRecording()
+                readPositionMessage()
+
+                readSoundMessage()
+                updateGraphSound()
+                playSound()
             }
         }
 
@@ -165,8 +173,7 @@ class Activity4Record : AppCompatActivity() {
         }
     }
 
-    private fun getAllIntent() {
-        // To get the intent (variables from the previous activity)
+    private fun getAllIntent(){
         val intent = this.intent
         debug = intent.getBooleanExtra("debug", debug)
         saveRecord = intent.getBooleanExtra("saveRecord", saveRecord)
@@ -180,17 +187,13 @@ class Activity4Record : AppCompatActivity() {
         ) != PackageManager.PERMISSION_GRANTED || ContextCompat.checkSelfPermission(
             this,
             Manifest.permission.WRITE_EXTERNAL_STORAGE
-        ) != PackageManager.PERMISSION_GRANTED || ContextCompat.checkSelfPermission(
-            this,
-            Manifest.permission.BLUETOOTH
         ) != PackageManager.PERMISSION_GRANTED
                 )
         if (isNotChecked) {
             val permissions = arrayOf(
                 Manifest.permission.RECORD_AUDIO,
                 Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                Manifest.permission.READ_EXTERNAL_STORAGE,
-                Manifest.permission.BLUETOOTH
+                Manifest.permission.READ_EXTERNAL_STORAGE
             )
             ActivityCompat.requestPermissions(this, permissions, 0)
         }
@@ -204,11 +207,10 @@ class Activity4Record : AppCompatActivity() {
 
         } else {
             debug = false
-            setTheme(R.style.LightTheme
-            )
+            setTheme(R.style.LightTheme)
         }
         if (!onCreate) {      // To avoid infinite loops
-            changeActivity(Activity4Record::class.java)
+            changeActivity(Activity4Speaker::class.java)
         }
     }
 
@@ -225,10 +227,10 @@ class Activity4Record : AppCompatActivity() {
         return super.onCreateOptionsMenu(menu)
     }
 
-    private fun initiateMenuItems(menu: Menu?) {
+    private fun initiateMenuItems(menu: Menu?){
         // ----- Activities -----
-        val activity = menu?.findItem(R.id.activity_record)
-        activity?.title = "-> Record <-"
+        val activity = menu?.findItem(R.id.activity_speaker)
+        activity?.title = "-> Speaker <-"
         // ----- Settings -----
         val settingDebug = menu?.findItem(R.id.settings_debug)
         settingDebug?.title = if (debug) "Debug: ON" else "Debug: OFF"
@@ -247,6 +249,10 @@ class Activity4Record : AppCompatActivity() {
                 if (debug) {
                     Log.d("onOptionsItemSelected", "activity manual pressed")
                 }
+                /*
+                val intent = Intent(this, Activity3Manual::class.java)
+                startActivity(intent)
+                 */
                 changeActivity(Activity4Manual::class.java)
                 return true
             }
@@ -257,7 +263,7 @@ class Activity4Record : AppCompatActivity() {
                 changeActivity(Activity4Handler::class.java)
                 return true
             }
-            R.id.activity_bluetooth -> {
+            R.id.activity_bluetooth-> {
                 if (debug) {
                     Log.d("onOptionsItemSelected", "activity bluetooth pressed")
                 }
@@ -268,6 +274,7 @@ class Activity4Record : AppCompatActivity() {
                 if (debug) {
                     Log.d("onOptionsItemSelected", "activity record pressed")
                 }
+                changeActivity(Activity4Record::class.java)
                 return true
             }
             R.id.activity_play -> {
@@ -275,6 +282,12 @@ class Activity4Record : AppCompatActivity() {
                     Log.d("onOptionsItemSelected", "activity play pressed")
                 }
                 changeActivity(Activity4Play::class.java)
+                return true
+            }
+            R.id.activity_speaker -> {
+                if (debug) {
+                    Log.d("onOptionsItemSelected", "activity speaker pressed")
+                }
                 return true
             }
             // -------------------- Settings Menu --------------------
@@ -291,23 +304,16 @@ class Activity4Record : AppCompatActivity() {
                 return true
             }
             R.id.settings_save_record -> {
-                if (saveRecord) {
+                if(saveRecord){
                     saveRecord = false
                     item.title = "Save Record: OFF"
                 } else {
                     saveRecord = true
                     item.title = "Save Record: ON"
                 }
-                if (debug) {
+                if(debug){
                     Log.d("onOptionItemSelected", "setting_save_record_pressed")
                 }
-            }
-            R.id.activity_speaker -> {
-                if (debug) {
-                    Log.d("onOptionsItemSelected", "activity speaker pressed")
-                }
-                changeActivity(Activity4Speaker::class.java)
-                return true
             }
 
             // -------------------- Version menu --------------------
@@ -326,7 +332,7 @@ class Activity4Record : AppCompatActivity() {
                 return true
             }
             R.id.version_3_0 -> {
-                if (debug) {
+                if(debug){
                     println("v3 pressed")
                 }
                 changeActivity(Activity3Handler::class.java)
@@ -342,16 +348,17 @@ class Activity4Record : AppCompatActivity() {
         return super.onOptionsItemSelected(item)
     }
 
-    private fun changeActivity(activity: Class<*>) {
+
+    private fun changeActivity(activity: Class<*>){
         val intent = Intent(this, activity)
         // ----- Put Extra -----
         intent.putExtra("debug", debug)     // Debug value
         intent.putExtra("saveRecord", saveRecord)
-        intent.putExtra("connectedBluetoothDevice", connectedBluetoothDevice)
-        intent.putExtra("previousActivity", "Record")
+        intent.putExtra("previousActivity", "Speaker")
         // ----- Start activity -----
         startActivity(intent)
     }
+
 
     // ------------------------------ Helper ------------------------------
 
@@ -376,180 +383,69 @@ class Activity4Record : AppCompatActivity() {
         return (list as List<T>).toTypedArray()
     }
 
+    // ------------------------------ Create sound ------------------------------
 
-    // ------------------------------ Audio ------------------------------
-
-
-    private fun startRecording() {
-        text_view_state.text = "Wait to record.."
-        if (debug) {
-            val currentTime = Calendar.getInstance().timeInMillis
-            Log.d("startRecording", "Button start pressed at $currentTime")
-        }
-        if (!isRecording) {
-            recordStart?.let{itRecordStart ->
-                var recordStartOffset = itRecordStart - Calendar.getInstance().timeInMillis
-                recordDuration?.let{itRecordDuration ->
-                    text_view_state.text = "Will record in ${recordStartOffset/1000}s"
-                    val stopTime = itRecordStart + itRecordDuration
-                    if (debug) {
-                        Log.d(
-                            "startRecording",
-                            "offset : $recordStartOffset - startTime : $itRecordStart - duration : $itRecordDuration - stopTime : $stopTime"
-                        )
-                    }
-                    try {
-                        prepareRecorder()
-                        recorder?.let { r ->
-                            val handler = Handler()
-                            r.startRecording()
-                            recordStartOffset = itRecordStart - Calendar.getInstance().timeInMillis
-                            handler.postDelayed({ getAudioData(stopTime) }, recordStartOffset)
-                        }
-
-                    } catch (e: IllegalStateException) {
-                        Log.e("startRecording", "Can't start recording", e)
-                    } catch (e: IOException) {
-                        Log.e("startRecording", "Can't start recording", e)
-                    }
-
-                }
-            }
-        } else {
-            Toast.makeText(this, "You are already recording", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    private fun prepareRecorder() {
-        recordedSound = ArrayList<Short>()      // Reset the recorded Sound
-        isRecording = true
-        Toast.makeText(this, "Recording started!", Toast.LENGTH_SHORT).show()
-        text_view_state.text = "Recording..."
-        recorder = AudioRecord(
-            MediaRecorder.AudioSource.MIC,
-            recorderSampleRate, recorderChannels,
-            recorderAudioEncoding, bufferElements2Rec * bytesPerElement
-        )
-    }
-
-    private fun getAudioData(stopDate: Long) {
-        text_view_state.text = "Recording.."
-        // Write the output audio in byte
-        val sData = ShortArray(bufferElements2Rec)
-        // val timeBeforeWile = Calendar.getInstance().timeInMillis
-        // Log.d("getAudioData", "before while data: ${timeBeforeWile}")
-        while (stopDate > Calendar.getInstance().timeInMillis) {
-            // gets the voice output from microphone to byte format
-            recorder?.read(sData, 0, bufferElements2Rec)
-            sData.forEach { recordedSound?.add(it) }
-        }
-        // val timeAfterWile = Calendar.getInstance().timeInMillis
-        // Log.d("getAudioData", "after while data: ${timeAfterWile}")
-        // Log.d("getAudioData", "Duration : ${timeAfterWile - timeBeforeWile}")
-        if (debug) {
-            val currentTime = Calendar.getInstance().timeInMillis
-            Log.d("getAudioData", "stop recording at $currentTime")
-        }
-        Log.d("getAudioData", "before while data: ${Calendar.getInstance().timeInMillis}")
-        stopRecording()
-    }
-
-    // ------------------------------ Stop Recording ------------------------------
-
-    private fun stopRecording() {
-        text_view_state.text = "Cleaning recording ..."
-        // stops the recording activity
-        if (isRecording) {
-            isRecording = false
-            recorder?.let { r ->
-                r.stop()
-                r.release()
-            }
-            recorder = null
-            recordingThread = null
-            Toast.makeText(this, "Recording stopped", Toast.LENGTH_SHORT).show()
-
-            // ----- Do the computation with the recordedSound ----
-            cleanRecordedSound()        // Clean it
-            updateGraphRecorder()       // Plot it
-            text_view_state.text = "Press Start to record"
-        } else {
-            Toast.makeText(this, "You are not recording right now!", Toast.LENGTH_SHORT).show()
-        }
-        sendRecord()
-        readAnswerMessage()
-    }
-
-    private fun cleanRecordedSound() {
-        if(debug){
-            Log.d(
-                "cleanRecordedSound",
-                "Length of the raw recording ${recordedSound?.size}"
-            )
-        }
-        recordedSound?.let {
-            // Check number of zeros at the beginning
-            var nbZerosBeginning = 0
-            for (i in 0 until it.size) {
-                if (it[i].toInt() == 0) {
-                    nbZerosBeginning++
-                } else {
-                    break
-                }
-            }
-            // Check number of zeros at the beginning
-            var nbZerosEnding = 0
-            for (i in 0 until it.size) {
-                if (it[i].toInt() == 0) {
-                    nbZerosEnding++
-                } else {
-                    break
-                }
-            }
-            // Remove it
-            if (nbZerosBeginning < it.size - nbZerosEnding){
-                recordedSound = ArrayList(it.subList(nbZerosBeginning, it.size - nbZerosEnding))
-            }
-
-            // Log it
-            if (debug) {
-                Log.d(
-                    "cleanRecordedSound",
-                    "Number of zeros at the: --  beginning : $nbZerosBeginning = ${nbZerosBeginning.toDouble() / recorderSampleRate.toDouble()} -- ending : $nbZerosEnding = ${nbZerosEnding.toDouble() / recorderSampleRate.toDouble()}"
-                )
-                Log.d(
-                    "cleanRecordedSound",
-                    "Length of the cleaned recording ${recordedSound?.size}"
-                )
-            }
-            // Basically : there were just 1024 values==0 at the beginning and the ending of the recorded sound = size of a buffer
-        }
-    }
-
-    private fun updateGraphRecorder() {
+    private fun updateGraphSound() {
         // Used to plot the recorded Sound
-        recordedSound?.let {
+        soundToPlay?.let {
             // Create the DataPoint
             val dataPoints: List<DataPoint> = it.mapIndexed { index, sh ->
                 DataPoint(
-                    index.toDouble() / recorderSampleRate.toDouble(),
+                    index.toDouble() / sampleRate.toDouble(),
                     sh.toDouble()
                 )
             }
             val dataPointsArray: Array<DataPoint> = listToArray<DataPoint>(dataPoints)
             val series = LineGraphSeries<DataPoint>(dataPointsArray)
 
-            graph_waveform_recorded.removeAllSeries()
-            graph_waveform_recorded.addSeries(series)
-            graph_waveform_recorded.setTitle("Recorded")
-            graph_waveform_recorded.getViewport().setScalable(true)
+            graph_waveform_sound.removeAllSeries()
+            graph_waveform_sound.addSeries(series)
+            graph_waveform_sound.setTitle("Recorded")
+            graph_waveform_sound.getViewport().setScalable(true)
         }
     }
 
+    // ------------------------------ Play sound ------------------------------
+
+    private fun playSound(){
+        text_view_state.text = "Prepare for playing the sound..."
+        soundToPlay?.let{itSoundToPlay ->
+            val createdSoundArray: ShortArray = ShortArray(itSoundToPlay.size){i ->
+                itSoundToPlay[i].toShort()
+            }
+            val track = AudioTrack( AudioManager.STREAM_ALARM, sampleRate, playerChannels, playerAudioEncoding, itSoundToPlay.size, playerMode)
+            track.write(createdSoundArray, 0, itSoundToPlay.size)
+            val handler = Handler()
+            Log.d("playSound", "startPlay $startPlay - currentDate ${Calendar.getInstance().timeInMillis}")
+            startPlay?.let{itStartPlay ->
+                val startOffset = itStartPlay - Calendar.getInstance().timeInMillis
+                handler.postDelayed({
+                    playSoundHandled(track)
+                }, startOffset)
+            }
+        }
+    }
+    private fun playSoundHandled(track:AudioTrack){
+        startPlayTruth = Calendar.getInstance().timeInMillis
+        track.play()
+        Log.d("playSoundHandled", "after trackPlay")
+        sendStartPlayTruth()
+    }
     // ------------------------------ Bluetooth ------------------------------
+
+    private fun getUUID(){
+        val s = "ae465fd9-2d3b-a4c6-4385-ea69b4c1e23c${speakerNumber - 1}"
+        uuid = UUID.fromString(s)
+    }
+
     private fun startConnection() {
         text_view_state.text = "Initialazing connection..."
         try{
+            println("before the soeaker number")
+            speakerNumber = form_speaker_number.text.toString().toInt()
+            println("before the UUID")
+            getUUID()
+            println("Got the UUID")
             socket = connectedBluetoothDevice?.createRfcommSocketToServiceRecord(uuid)
             socket?.connect()
             inputStream = socket?.inputStream
@@ -557,22 +453,6 @@ class Activity4Record : AppCompatActivity() {
             Toast.makeText(this, "Connection started", Toast.LENGTH_SHORT).show()
         } catch(e: java.io.IOException) {
             Log.e("start connect", "Couldn't start the connection", e)
-        }
-    }
-
-    private fun readTriggerMessage(){
-        text_view_state.text = "Getting Triggering Messages..."
-        try {
-            val message = readMessage()
-            val messageJSON = Klaxon().parse<BluetoothRecordTrigger>(message)
-            recordStart = messageJSON?.start
-            recordDuration = messageJSON?.duration
-            text_start.text = recordStart.toString()
-            text_duration.text = recordDuration.toString()
-        } catch (e: KlaxonException){
-            Log.e("readTriggerData", "Cannot parse the data", e)
-            text_start.text = e.toString()
-            text_duration.text = e.toString()
         }
     }
 
@@ -594,16 +474,21 @@ class Activity4Record : AppCompatActivity() {
                 Thread.sleep(200)
                 available = inputStream?.available()
             }
-            available?.let{ itAvailable ->
-                val bytes = ByteArray(itAvailable)
-                Log.i("readMessage", "Reading")
-                inputStream?.read(bytes, 0, itAvailable)
-                Log.i("readMessage", "InputStream $inputStream")
-                Log.i("readMessage", "available $itAvailable")
-                val text = String(bytes)
-                Log.i("readMessage", "Message received: text $ text")
-                return text
+            var text = ""
+            while (available != 0){
+                available?.let{ itAvailable ->
+                    val bytes = ByteArray(itAvailable)
+                    Log.i("readMessage", "Reading")
+                    inputStream?.read(bytes, 0, itAvailable)
+                    Log.i("readMessage", "InputStream $inputStream")
+                    Log.i("readMessage", "available $itAvailable")
+                    text += String(bytes)
+                    Log.i("readMessage", "Message received: text $text")
+                    Thread.sleep(100)
+                    available = inputStream?.available()
+                }
             }
+            return text
         } catch (e: java.lang.Exception){
             Log.e("readMessage", "Cannot read data", e)
             return e.toString()
@@ -616,49 +501,58 @@ class Activity4Record : AppCompatActivity() {
         return text
     }
 
-    private fun sendRecord() {
-        text_view_state.text = "Sending Record ..."
-        recordedSound?.let{itRecordedSound ->
-            val recordedSoundString = Klaxon().toJsonString(
-                BluetoothRecord(data=itRecordedSound)
+    private fun readPositionMessage(){
+        Log.d("ReadPositionMessage", "in function")
+        text_view_state.text = "Getting the position..."
+        try {
+            val message = readMessage()
+            val messageJSON = Klaxon().parse<BluetoothSpeakerPosition>(message)
+            positionX = messageJSON?.x
+            positionY = messageJSON?.y
+            Log.d("readPositionMessage", "X $positionX, Y $positionY")
+            text_position_x.text = positionX.toString()
+            text_position_y.text = positionY.toString()
+        } catch (e: KlaxonException){
+            Log.e("readTriggerData", "Cannot parse the data", e)
+            text_position_x.text = e.toString()
+            text_position_y.text = e.toString()
+        }
+    }
+
+
+    private fun readSoundMessage(){
+        Log.d("ReadSoundMessage", "in function")
+        text_view_state.text = "Getting the sound to play..."
+        try {
+            val message = readMessage()
+            val messageJSON = Klaxon().parse<BluetoothSpeakerSound>(message)
+            Log.d("ReadSoundMessage", "Klaxon OK")
+            startPlay = messageJSON?.start
+            soundToPlay = messageJSON?.sound
+            text_start_play.text = startPlay.toString()
+        } catch (e: KlaxonException){
+            Log.e("readTriggerData", "Cannot parse the data", e)
+            text_start_play.text = e.toString()
+        }
+    }
+
+    private fun sendStartPlayTruth(){
+        text_view_state.text = "Send the True Start Date"
+        startPlayTruth?.let{itStartPlayTruth ->
+            val startPlayTruthString = Klaxon().toJsonString(
+                BluetoothSpeakerTrueStart(start=itStartPlayTruth)
             )
-            text_record_sent.text = itRecordedSound.toString()
+            text_start_play_true.text = itStartPlayTruth.toString()
             try {
-                outputStream?.write(recordedSoundString.toByteArray())
+                outputStream?.write(startPlayTruthString.toByteArray())
                 outputStream?.flush()
-                Log.i("sendRecord", "Sent")
+                Log.i("sendStartPlayTruth", "Sent")
             } catch (e: Exception) {
-                Log.e("sendRecord", "Cannot send", e)
+                Log.e("sendStartPlayTruth", "Cannot send", e)
             }
             Toast.makeText(this, "Message sent", Toast.LENGTH_SHORT).show()
         }
-
     }
-
-    private fun readAnswerMessage(){
-        text_view_state.text = "Reading Acceptation Answer..."
-        try{
-            val message = readMessage()
-            val messageJSON = Klaxon().parse<bluetoothRecordAnswer>(message)
-            accepted = messageJSON?.accepted
-            accepted?.let{it->
-                if(it){
-                    text_answer_accepted.text = "Accepted"
-                    text_answer_accepted.setTextColor(Color.GREEN)
-                } else {
-                    text_answer_accepted.text = "Rejected"
-                    text_answer_accepted.setTextColor(Color.RED)
-                }
-            }
-        } catch (e: KlaxonException){
-            Log.e("readAnswerData", "Cannot parse the data", e)
-            text_answer_accepted.text = e.toString()
-            text_answer_accepted.setTextColor(Color.YELLOW)
-
-        }
-        text_view_state.text = "Press STOP CONNECTION"
-    }
-
 }
 
 

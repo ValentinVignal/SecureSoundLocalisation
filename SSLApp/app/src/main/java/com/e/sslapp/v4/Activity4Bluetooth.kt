@@ -27,9 +27,8 @@ import com.e.sslapp.v3.Activity3Handler
 import com.e.sslapp.R
 import kotlinx.android.synthetic.main.activity4_bluetooth.*
 import com.beust.klaxon.*
-import com.e.sslapp.customElements.BluetoothTrigger
-import com.e.sslapp.customElements.BluetoothRecord
-import com.e.sslapp.customElements.BluetoothAnswer
+import com.e.sslapp.customElements.BluetoothRecordTrigger
+import com.e.sslapp.customElements.bluetoothRecordAnswer
 
 
 
@@ -276,6 +275,13 @@ class Activity4Bluetooth : AppCompatActivity() {
                 changeActivity(Activity4Play::class.java)
                 return true
             }
+            R.id.activity_speaker -> {
+                if (debug) {
+                    Log.d("onOptionsItemSelected", "activity speaker pressed")
+                }
+                changeActivity(Activity4Speaker::class.java)
+                return true
+            }
             // -------------------- Settings Menu --------------------
             R.id.settings_debug -> {
                 Log.d("onOptionsItemSelected", "settings debug pressed")
@@ -382,7 +388,7 @@ class Activity4Bluetooth : AppCompatActivity() {
         try {
             val message = readMessage()
             text_received_message_trigger.text = message
-            val messageJSON = Klaxon().parse<BluetoothTrigger>(message)
+            val messageJSON = Klaxon().parse<BluetoothRecordTrigger>(message)
             text_received_message_trigger_start.text = messageJSON?.start.toString()
             text_received_message_trigger_duration.text = messageJSON?.duration.toString()
         } catch (e: KlaxonException){
@@ -462,7 +468,7 @@ class Activity4Bluetooth : AppCompatActivity() {
         try{
             val message = readMessage()
             text_received_message_answer.text = message
-            val messageJSON = Klaxon().parse<BluetoothAnswer>(message)
+            val messageJSON = Klaxon().parse<bluetoothRecordAnswer>(message)
             text_received_message_answer_accepted.text = messageJSON?.accepted.toString()
         } catch (e: KlaxonException){
             Log.e("sendMessage", "Cannot parse the data", e)

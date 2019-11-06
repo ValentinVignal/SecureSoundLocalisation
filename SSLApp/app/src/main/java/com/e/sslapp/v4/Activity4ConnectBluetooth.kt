@@ -274,6 +274,10 @@ class Activity4ConnectBluetooth : AppCompatActivity() {
                 val activity = menu?.findItem(R.id.activity_record)
                 activity?.title = "-> Record <-"
             }
+            "Speaker" -> {
+                val activity = menu?.findItem(R.id.activity_speaker)
+                activity?.title = "-> Speaker <-"
+            }
         }
         // ----- Settings -----
         val settingDebug = menu?.findItem(R.id.settings_debug)
@@ -322,6 +326,13 @@ class Activity4ConnectBluetooth : AppCompatActivity() {
                     Log.d("onOptionsItemSelected", "activity play pressed")
                 }
                 changeActivity(Activity4Play::class.java)
+                return true
+            }
+            R.id.activity_speaker -> {
+                if (debug) {
+                    Log.d("onOptionsItemSelected", "activity speaker pressed")
+                }
+                changeActivity(Activity4Speaker::class.java)
                 return true
             }
             // -------------------- Settings Menu --------------------
@@ -398,6 +409,9 @@ class Activity4ConnectBluetooth : AppCompatActivity() {
             }
             "Play" -> {
                 changeActivity(Activity4Play::class.java)
+            }
+            "Speaker" -> {
+                changeActivity(Activity4Speaker::class.java)
             }
         }
 
