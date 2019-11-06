@@ -30,9 +30,7 @@ import com.e.sslapp.v1.Activity1Manual
 import com.e.sslapp.v2.Activity2Manual
 import com.e.sslapp.v3.Activity3Handler
 import com.e.sslapp.R
-import com.e.sslapp.customElements.BluetoothSpeakerPosition
-import com.e.sslapp.customElements.BluetoothSpeakerSound
-import com.e.sslapp.customElements.BluetoothSpeakerTrueStart
+import com.e.sslapp.customElements.*
 import kotlinx.android.synthetic.main.activity4_speaker.*
 import kotlinx.android.synthetic.main.activity4_speaker.button_connect_bluetooth
 import kotlinx.android.synthetic.main.activity4_speaker.button_connection
@@ -110,6 +108,8 @@ class Activity4Speaker : AppCompatActivity() {
     var soundToPlay: ArrayList<Short>? = null
     var startPlayTruth : Long? = null
 
+    var threadBT: ThreadSpeakers? = null
+
     // ------------------------------------------------------------
     //                           Methods
     // ------------------------------------------------------------
@@ -151,6 +151,7 @@ class Activity4Speaker : AppCompatActivity() {
             if(connected){
                 button_connection.text = "Start connection"
                 connected = false
+                threadBT?.terminate()
                 stopConnection()
             } else {
                 button_connection.text = "Stop connection"
@@ -159,9 +160,10 @@ class Activity4Speaker : AppCompatActivity() {
                 startConnection()
                 readPositionMessage()
 
-                readSoundMessage()
-                updateGraphSound()
-                playSound()
+                //speaker()
+                socket?.let{
+                    BluetoothSpeakers2(it, sampleRate,this).start()
+                }
             }
         }
 
@@ -383,6 +385,17 @@ class Activity4Speaker : AppCompatActivity() {
         return (list as List<T>).toTypedArray()
     }
 
+    fun speaker() {
+        runOnUiThread(Runnable {
+            readSoundMessage()
+            updateGraphSound()
+            playSound()
+        })
+
+    }
+
+
+
     // ------------------------------ Create sound ------------------------------
 
     private fun updateGraphSound() {
@@ -405,6 +418,26 @@ class Activity4Speaker : AppCompatActivity() {
         }
     }
 
+    fun updateGraphSound(sound: ArrayList<Short>) {
+        runOnUiThread(Runnable {
+            // Used to plot the recorded Sound
+            // Create the DataPoint
+            val dataPoints: List<DataPoint> = sound.mapIndexed { index, sh ->
+                DataPoint(
+                    index.toDouble() / sampleRate.toDouble(),
+                    sh.toDouble()
+                )
+            }
+            val dataPointsArray: Array<DataPoint> = listToArray<DataPoint>(dataPoints)
+            val series = LineGraphSeries<DataPoint>(dataPointsArray)
+
+            graph_waveform_sound.removeAllSeries()
+            graph_waveform_sound.addSeries(series)
+            graph_waveform_sound.setTitle("Recorded")
+            graph_waveform_sound.getViewport().setScalable(true)
+        })
+    }
+
     // ------------------------------ Play sound ------------------------------
 
     private fun playSound(){
@@ -413,28 +446,34 @@ class Activity4Speaker : AppCompatActivity() {
             val createdSoundArray: ShortArray = ShortArray(itSoundToPlay.size){i ->
                 itSoundToPlay[i].toShort()
             }
-            val track = AudioTrack( AudioManager.STREAM_ALARM, sampleRate, playerChannels, playerAudioEncoding, itSoundToPlay.size, playerMode)
+            val track = AudioTrack( AudioManager.STREAM_MUSIC, sampleRate, playerChannels, playerAudioEncoding, itSoundToPlay.size, playerMode)
             track.write(createdSoundArray, 0, itSoundToPlay.size)
             val handler = Handler()
             Log.d("playSound", "startPlay $startPlay - currentDate ${Calendar.getInstance().timeInMillis}")
             startPlay?.let{itStartPlay ->
                 val startOffset = itStartPlay - Calendar.getInstance().timeInMillis
-                handler.postDelayed({
-                    playSoundHandled(track)
+                handler.postDelayed(Runnable{
+                    ThreadPlaySound(this, track).start()
+                    println("After the ThreadPlaySound")
                 }, startOffset)
+                println("After the postDelayed")
             }
         }
     }
-    private fun playSoundHandled(track:AudioTrack){
-        startPlayTruth = Calendar.getInstance().timeInMillis
-        track.play()
-        Log.d("playSoundHandled", "after trackPlay")
-        sendStartPlayTruth()
+
+
+    fun playSoundHandled(track:AudioTrack){
+        runOnUiThread(Runnable{
+            startPlayTruth = Calendar.getInstance().timeInMillis
+            track.play()
+            Log.d("playSoundHandled", "after trackPlay")
+            sendStartPlayTruth()
+        })
     }
     // ------------------------------ Bluetooth ------------------------------
 
     private fun getUUID(){
-        val s = "ae465fd9-2d3b-a4c6-4385-ea69b4c1e23c${speakerNumber - 1}"
+        val s = "ae465fd9-2d3b-a4c6-4385-ea69b4c1e23c" //${speakerNumber - 1}"
         uuid = UUID.fromString(s)
     }
 
@@ -553,6 +592,28 @@ class Activity4Speaker : AppCompatActivity() {
             Toast.makeText(this, "Message sent", Toast.LENGTH_SHORT).show()
         }
     }
+
+    // ------------------------------ Set messages ------------------------------
+
+    fun setTextViewState(text: String){
+        runOnUiThread(Runnable {
+            text_view_state.text = text
+        })
+    }
+
+    fun setTextStartPlay(text: String){
+        runOnUiThread(Runnable{
+            text_start_play.text = text
+        })
+    }
+
+    fun setTextStartPlayTrue(text: String){
+        runOnUiThread(Runnable{
+            text_start_play_true.text = text
+        })
+    }
+
+
 }
 
 

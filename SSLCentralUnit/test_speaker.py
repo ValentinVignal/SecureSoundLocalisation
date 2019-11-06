@@ -45,11 +45,14 @@ def get_signal_json():
 def set_speaker(sock, x, y):
     data = {"x": x, "y": y}
     sock.send(json.dumps(data))
+    return len(json.dumps(data))
 
 
 def tell_speaker_emit(sock, start, signal):
     data = {"start": start, "sound": signal}
+    print("start", start)
     sock.send(json.dumps(data))
+    return len(json.dumps(data))
 
 
 if __name__ == "__main__":
@@ -69,17 +72,22 @@ if __name__ == "__main__":
     while True:
         print("Waiting for speaker connection on RFCOMM channel %d" % port)
         client_sock, client_info = server_sock.accept()
-        print(f"Accepted connection from speaker {i+1} ", client_info)
+        print(f"Accepted connection from speaker {-1} ", client_info)
         try:
             x, y = np.random.random(2) * 3 - 1.5  # in a 3x3 square centred on CU
             byte_send = set_speaker(client_sock, x, y)
             print(f"told speaker to go to ({x}, {y}), bytes send : {byte_send}")
-            signal = get_signal_json()
-            time.sleep(5)
-            byte_send = tell_speaker_emit(
-                client_sock, int(time.time() * 1000) + 3000, signal
-            )
-            print(f"told speaker to emit the sound in 3 sec, bytes send : {byte_send}")
         except IOError as e:
             print(e)
+        for i in range(2):
+            time.sleep(5)
+            try:
+                signal = get_signal_json()
+                time.sleep(5)
+                byte_send = tell_speaker_emit(
+                    client_sock, int(time.time() * 1000) + 4000, signal
+                )
+                print(f"told speaker to emit the sound in 3 sec, bytes send : {byte_send}")
+            except IOError as e:
+                print(e)
     server_sock.close()
