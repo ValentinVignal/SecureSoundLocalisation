@@ -116,9 +116,13 @@ class Activity4Speaker : AppCompatActivity() {
                 stopConnection()
             } else {
                 button_connection.text = "Stop connection"
+                removeTexts()
                 connected = true
                 graph_waveform_sound.removeAllSeries()
                 startConnection()
+                socket?.let{itSocket ->
+                    sendMessage(itSocket, "speaker")
+                }
                 readPositionMessage()
 
                 //speaker()
@@ -333,6 +337,13 @@ class Activity4Speaker : AppCompatActivity() {
 
     // ------------------------------ Create sound ------------------------------
 
+    private fun removeTexts() {
+        text_position_x.text = ""
+        text_position_y.text = ""
+        text_start_play.text = ""
+        text_start_play_true.text = ""
+    }
+
     fun updateGraphSound(sound: ArrayList<Short>) {
         runOnUiThread(Runnable {
             // Used to plot the recorded Sound
@@ -363,11 +374,8 @@ class Activity4Speaker : AppCompatActivity() {
     private fun startConnection() {
         text_view_state.text = "Initialazing connection..."
         try{
-            println("before the soeaker number")
             speakerNumber = form_speaker_number.text.toString().toInt()
-            println("before the UUID")
             getUUID()
-            println("Got the UUID")
             socket = connectedBluetoothDevice?.createRfcommSocketToServiceRecord(uuid)
             socket?.connect()
             inputStream = socket?.inputStream
