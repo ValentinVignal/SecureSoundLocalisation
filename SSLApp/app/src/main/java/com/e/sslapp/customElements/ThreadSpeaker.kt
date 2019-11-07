@@ -17,14 +17,11 @@ class ThreadSpeakers(socket: BluetoothSocket, sampleRate: Int, activity:Activity
     val sampleRate = sampleRate
     val socket = socket
 
-    var running: Boolean = true
     var currentWorker: Thread? = null
 
     override fun run(){
         try{
             while(! interrupted()){
-                println("is Alive")
-                println("while running: $running")
                 currentWorker = ThreadSpeaker(socket, sampleRate, activity)
                 currentWorker?.start()
                 currentWorker?.let{itCurrentWorker ->
@@ -51,7 +48,6 @@ class ThreadSpeaker(socket: BluetoothSocket, sampleRate: Int, activity:Activity4
             val (startPlay, soundToPlay) = readSoundMessage()
             startPlay?.let{itStartPlay ->
                 soundToPlay?.let{itSoundToPlay ->
-                    println("in both let")
                     activity.updateGraphSound(itSoundToPlay)
                     val datePlayed = playSound(itStartPlay, itSoundToPlay)
                     sendDatePlayed(datePlayed)
@@ -73,6 +69,7 @@ class ThreadSpeaker(socket: BluetoothSocket, sampleRate: Int, activity:Activity4
             val startPlay = messageJSON?.start
             val soundToPlay = messageJSON?.sound
             activity.setTextStartPlay(startPlay.toString())
+            activity.setTextStartPlayTrue("")
             return Pair(startPlay, soundToPlay)
         } catch (e: KlaxonException){
             Log.e("readTriggerData", "Cannot parse the data", e)
@@ -103,47 +100,7 @@ class ThreadSpeaker(socket: BluetoothSocket, sampleRate: Int, activity:Activity4
             BluetoothSpeakerTrueStart(start=datePlayed)
         )
         activity.setTextStartPlayTrue(datePlayed.toString())
-        try {
-            socket.outputStream?.write(startPlayTruthString.toByteArray())
-            socket.outputStream?.flush()
-            Log.i("sendStartPlayTruth", "Sent")
-        } catch (e: Exception) {
-            Log.e("sendStartPlayTruth", "Cannot send", e)
-        }
-    }
-}
-
-
-
-fun readMessage(socket: BluetoothSocket): String{
-    try{
-        var available = socket.inputStream?.available()
-        while(available == 0){
-            Thread.sleep(200)
-            available = socket.inputStream?.available()
-            println()
-        }
-        var text = ""
-        while (available != 0){
-            available?.let{ itAvailable ->
-                val bytes = ByteArray(itAvailable)
-                Log.i("readMessage", "Reading")
-                socket.inputStream?.read(bytes, 0, itAvailable)
-                Log.i("readMessage", "InputStream ${socket.inputStream}")
-                Log.i("readMessage", "available $itAvailable")
-                text += String(bytes)
-                Log.i("readMessage", "Message received: text $text")
-                Thread.sleep(100)
-                available = socket.inputStream?.available()
-            }
-        }
-        return text
-    } catch (e: java.lang.Exception){
-        Log.e("readMessage", "Cannot read data", e)
-        return e.toString()
-    } catch (e: java.lang.NullPointerException){
-        Log.e("readMessage", "Input Stream not available", e)
-        return e.toString()
+        sendMessage(socket, startPlayTruthString)
     }
 }
 

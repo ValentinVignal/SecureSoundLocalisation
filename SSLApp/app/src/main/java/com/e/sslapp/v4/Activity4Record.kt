@@ -29,9 +29,7 @@ import com.e.sslapp.v2.Activity2Manual
 import com.e.sslapp.v3.Activity3Handler
 import com.e.sslapp.R
 import com.beust.klaxon.*
-import com.e.sslapp.customElements.bluetoothRecordAnswer
-import com.e.sslapp.customElements.BluetoothRecord
-import com.e.sslapp.customElements.BluetoothRecordTrigger
+import com.e.sslapp.customElements.*
 import com.jjoe64.graphview.series.DataPoint
 import com.jjoe64.graphview.series.LineGraphSeries
 import kotlinx.android.synthetic.main.activity4_record.*
@@ -152,6 +150,9 @@ class Activity4Record : AppCompatActivity() {
                 connected = true
                 graph_waveform_recorded.removeAllSeries()
                 startConnection()
+                socket?.let{itSocket ->
+                    sendMessage(itSocket, "device")
+                }
                 readTriggerMessage()
                 startRecording()
             }
@@ -355,22 +356,6 @@ class Activity4Record : AppCompatActivity() {
 
     // ------------------------------ Helper ------------------------------
 
-    // ---------- Use to change Short to Byte ----------
-    infix fun Short.and(that: Int): Int = this.toInt().and(that)
-
-    infix fun Short.shr(that: Int): Int = this.toInt().shr(that)
-
-    private fun short2byte(sData: ShortArray): ByteArray {
-        val shortArrsize = sData.size
-        val bytes = ByteArray(shortArrsize * 2)
-        for (i in 0 until shortArrsize) {
-            bytes[i * 2] = (sData[i] and 0x00FF).toByte()
-            bytes[i * 2 + 1] = (sData[i] shr 8).toByte()
-            sData[i] = 0
-        }
-        return bytes
-    }
-
     inline fun <reified T> listToArray(list: List<*>): Array<T> {
         // Create a list from an array
         return (list as List<T>).toTypedArray()
@@ -563,12 +548,14 @@ class Activity4Record : AppCompatActivity() {
     private fun readTriggerMessage(){
         text_view_state.text = "Getting Triggering Messages..."
         try {
-            val message = readMessage()
-            val messageJSON = Klaxon().parse<BluetoothRecordTrigger>(message)
-            recordStart = messageJSON?.start
-            recordDuration = messageJSON?.duration
-            text_start.text = recordStart.toString()
-            text_duration.text = recordDuration.toString()
+            socket?.let{itSocket ->
+                val message = readMessage(itSocket)
+                val messageJSON = Klaxon().parse<BluetoothRecordTrigger>(message)
+                recordStart = messageJSON?.start
+                recordDuration = messageJSON?.duration
+                text_start.text = recordStart.toString()
+                text_duration.text = recordDuration.toString()
+            }
         } catch (e: KlaxonException){
             Log.e("readTriggerData", "Cannot parse the data", e)
             text_start.text = e.toString()
@@ -587,34 +574,6 @@ class Activity4Record : AppCompatActivity() {
         text_view_state.text = "Press START CONNECTION"
     }
 
-    private fun readMessage(): String{
-        try{
-            var available = inputStream?.available()
-            while(available == 0){
-                Thread.sleep(200)
-                available = inputStream?.available()
-            }
-            available?.let{ itAvailable ->
-                val bytes = ByteArray(itAvailable)
-                Log.i("readMessage", "Reading")
-                inputStream?.read(bytes, 0, itAvailable)
-                Log.i("readMessage", "InputStream $inputStream")
-                Log.i("readMessage", "available $itAvailable")
-                val text = String(bytes)
-                Log.i("readMessage", "Message received: text $ text")
-                return text
-            }
-        } catch (e: java.lang.Exception){
-            Log.e("readMessage", "Cannot read data", e)
-            return e.toString()
-        } catch (e: java.lang.NullPointerException){
-            Log.e("readMessage", "Input Stream not available", e)
-            return e.toString()
-        }
-        val text = "Didn't get any text"
-        Log.e("readMessage", text)
-        return text
-    }
 
     private fun sendRecord() {
         text_view_state.text = "Sending Record ..."
@@ -623,12 +582,8 @@ class Activity4Record : AppCompatActivity() {
                 BluetoothRecord(data=itRecordedSound)
             )
             text_record_sent.text = itRecordedSound.toString()
-            try {
-                outputStream?.write(recordedSoundString.toByteArray())
-                outputStream?.flush()
-                Log.i("sendRecord", "Sent")
-            } catch (e: Exception) {
-                Log.e("sendRecord", "Cannot send", e)
+            socket?.let{itSocket ->
+                sendMessage(itSocket, recordedSoundString)
             }
             Toast.makeText(this, "Message sent", Toast.LENGTH_SHORT).show()
         }
@@ -638,17 +593,20 @@ class Activity4Record : AppCompatActivity() {
     private fun readAnswerMessage(){
         text_view_state.text = "Reading Acceptation Answer..."
         try{
-            val message = readMessage()
-            val messageJSON = Klaxon().parse<bluetoothRecordAnswer>(message)
-            accepted = messageJSON?.accepted
-            accepted?.let{it->
-                if(it){
-                    text_answer_accepted.text = "Accepted"
-                    text_answer_accepted.setTextColor(Color.GREEN)
-                } else {
-                    text_answer_accepted.text = "Rejected"
-                    text_answer_accepted.setTextColor(Color.RED)
+            socket?.let{itSocket ->
+                val message = readMessage(itSocket)
+                val messageJSON = Klaxon().parse<bluetoothRecordAnswer>(message)
+                accepted = messageJSON?.accepted
+                accepted?.let{it->
+                    if(it){
+                        text_answer_accepted.text = "Accepted"
+                        text_answer_accepted.setTextColor(Color.GREEN)
+                    } else {
+                        text_answer_accepted.text = "Rejected"
+                        text_answer_accepted.setTextColor(Color.RED)
+                    }
                 }
+
             }
         } catch (e: KlaxonException){
             Log.e("readAnswerData", "Cannot parse the data", e)
