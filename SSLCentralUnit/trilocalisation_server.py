@@ -24,7 +24,6 @@ elif sys.platform.startswith("linux"):
 SIGNAL_DURATION = 0.25  # s
 SAMPLE_FREQUENCY = 8000  # Hz
 SOUND_CELERITY = 340.29  # m/s
-SIMULATION = False
 
 
 def get_signal_json():
@@ -128,68 +127,56 @@ if __name__ == "__main__":
         service_classes=[uuid, bt.SERIAL_PORT_CLASS],
         profiles=[bt.SERIAL_PORT_PROFILE],
     )
-    if SIMULATION:
-        emission_offset = 500 + np.random.randint(500)
-        record = simulate_record(emission_offset + 500, emission_offset, 0.5, signal)
-        t1 = get_time(record, signal, emission_offset)
-        d1 = t1 * SOUND_CELERITY
-        response = {"accepted": False}
-        if d1 < 1:
-            response["accepted"] = True
-        print(
-            "test : {}\noffset: {}\ntime: {}\ndistance: {}".format(
-                "ACCEPTED" if response["accepted"] else "REFUSED",
-                emission_offset,
-                t1,
-                d1,
-            )
-        )
-    else:
-        cu_signal = get_signal_json()
-        write_signal(cu_signal)
-        sources = [Point(0, 0)]
-        speakers = []
-        # wait for 2 speakers
-        for i in range(2):
-            print("Waiting for speaker connection on RFCOMM channel %d" % port)
-            client_sock, client_info = server_sock.accept()
-            print(f"Accepted connection from speaker {i+1} ", client_info)
-            try:
+    cu_signal = get_signal_json()
+    write_signal(cu_signal)
+    sources = [Point(0, 0)]
+    speakers = []
+    while True:
+        print("Waiting for connection on RFCOMM channel %d" % port)
+        client_sock, client_info = server_sock.accept()
+        print("Accepted connection from ", client_info)
+        try:
+            # speaker or device
+            data = sock.recv(990)  # 990=length android bluetooth message
+            data = data.decode("utf8")
+            if data == "speaker":
                 x, y = np.random.random(2) * 3 - 1.5  # in a 3x3 square centred on CU
                 set_speaker(client_sock, x, y)
-                print(f"speaker ({x}, {y})")
                 signal = get_signal_json()
                 speakers.append((x, y, client_sock, signal))
                 sources.append(Point(x, y))
-            except IOError as e:
-                print(e)
-        # ready to localise
-        while True:
-            print("Waiting for device connection on RFCOMM channel %d" % port)
-            client_sock, client_info = server_sock.accept()
-            print("Accepted connection from ", client_info)
-            try:
-                emission_offset = 1000 + np.random.randint(1000)
-                signal_record = emit_and_record(client_sock, emission_offset)
-                time_offset = [get_time(signal_record, cu_signal, emission_offset)]
-                for _, _, _, signal in speakers:
-                    time_offset.append(get_time(signal_record, signal, emission_offset))
-                coord_comp = get_coordinates(offsets_latency, sources)
-                response = {"accepted": False}
-                if coord_comp.norm2 < 1:
-                    response["accepted"] = True
-                bytes_send = client_sock.send(json.dumps(response))
-                print(f"send : {bytes_send} bytes")
-                print(
-                    "{} : {}\noffset: {}\nx: {}\ny: {}".format(
-                        client_info,
-                        "ACCEPTED" if response["accepted"] else "REFUSED",
-                        emission_offset,
-                        coord_comp.x,
-                        coord_comp.y,
+                print(f"speaker setup in ({x}, {y})")
+            elif data == "device":
+                if len(speakers) >= 2:
+                    emission_offset = 1000 + np.random.randint(1000)
+                    signal_record = emit_and_record(client_sock, emission_offset)
+                    time_offset = [get_time(signal_record, cu_signal, emission_offset)]
+                    for _, _, _, signal in speakers:
+                        time_offset.append(
+                            get_time(signal_record, signal, emission_offset)
+                        )
+                    coord_comp = get_coordinates(offsets_latency, sources)
+                    response = {"accepted": False}
+                    if coord_comp.norm2 < 1:
+                        response["accepted"] = True
+                    bytes_send = client_sock.send(json.dumps(response))
+                    print(f"send : {bytes_send} bytes")
+                    print(
+                        "{} : {}\noffset: {}\nx: {}\ny: {}".format(
+                            client_info,
+                            "ACCEPTED" if response["accepted"] else "REFUSED",
+                            emission_offset,
+                            coord_comp.x,
+                            coord_comp.y,
+                        )
                     )
-                )
-            except IOError as e:
-                print(e)
+                else:
+                    print("Not enough speakers to perform localisation")
+                    client_sock.close()
+            else:
+                print("The device didn't identify itself correctly")
+                client_sock.close()
+        except IOError as e:
+            print(e)
 
         server_sock.close()
