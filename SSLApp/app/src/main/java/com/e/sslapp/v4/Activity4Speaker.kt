@@ -6,15 +6,10 @@ import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothSocket
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.media.AudioFormat
-import android.media.AudioManager
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import android.media.AudioTrack
-import android.os.Handler
-import android.provider.CalendarContract
 import android.view.Menu
 import android.view.MenuItem
 import androidx.appcompat.widget.Toolbar
@@ -30,9 +25,7 @@ import com.e.sslapp.v1.Activity1Manual
 import com.e.sslapp.v2.Activity2Manual
 import com.e.sslapp.v3.Activity3Handler
 import com.e.sslapp.R
-import com.e.sslapp.customElements.BluetoothSpeakerPosition
-import com.e.sslapp.customElements.BluetoothSpeakerSound
-import com.e.sslapp.customElements.BluetoothSpeakerTrueStart
+import com.e.sslapp.customElements.*
 import kotlinx.android.synthetic.main.activity4_speaker.*
 import kotlinx.android.synthetic.main.activity4_speaker.button_connect_bluetooth
 import kotlinx.android.synthetic.main.activity4_speaker.button_connection
@@ -45,28 +38,6 @@ class Activity4Speaker : AppCompatActivity() {
     //                           Static object
     // ------------------------------------------------------------
 
-    companion object {
-
-        // --------------------
-        //      Attributs
-        // --------------------
-
-        // var debug: Boolean = false // Use to debug (and for example print in the terminal)
-
-        // --------------------
-        //       Methods
-        // --------------------
-
-        fun newRecordPath(rootDirectory: File): String {
-            var i = 0
-            var nRecordPath = rootDirectory.absolutePath + "/recording_$i.pcm"
-            while (File(nRecordPath).exists()) {
-                i += 1
-                nRecordPath = rootDirectory.absolutePath + "/recording_$i.pcm"
-            }
-            return nRecordPath
-        }
-    }
 
     // ------------------------------------------------------------
     //                           Attributs
@@ -83,20 +54,11 @@ class Activity4Speaker : AppCompatActivity() {
 
     // ---------- Variables for AudioRecord ----------
     private val sampleRate: Int = 8000  // For emulator, put 44100 for real phone
-    private val playerChannels = AudioFormat.CHANNEL_OUT_MONO
-    private val playerAudioEncoding = AudioFormat.ENCODING_PCM_16BIT
-    private val playerMode = AudioTrack.MODE_STATIC
-
-
-
-    private var bufferElements2Rec: Int =
-        1024 // want to play 2048 (2K) since 2 bytes we use only 1024
-    private var bytesPerElement: Int = 2 // 2 bytes in 16bit format
 
     // ---------- Bluetooth ----------
     private var bluetoothAdapter: BluetoothAdapter? = null
     private var connectedBluetoothDevice: BluetoothDevice? = null
-    private var uuid: UUID = UUID.fromString("ae465fd9-2d3b-a4c6-4385-ea69b4c1e230")
+    private var uuid: UUID = UUID.fromString("ae465fd9-2d3b-a4c6-4385-ea69b4c1e23c")
     private var socket: BluetoothSocket? = null
     private var inputStream: InputStream? = null
     private var outputStream: OutputStream? = null
@@ -106,9 +68,8 @@ class Activity4Speaker : AppCompatActivity() {
     var speakerNumber: Int = 1
     var positionX: Float? = null
     var positionY: Float? = null
-    var startPlay: Long? = null
-    var soundToPlay: ArrayList<Short>? = null
-    var startPlayTruth : Long? = null
+
+    var threadBT: ThreadSpeakers? = null
 
     // ------------------------------------------------------------
     //                           Methods
@@ -151,17 +112,24 @@ class Activity4Speaker : AppCompatActivity() {
             if(connected){
                 button_connection.text = "Start connection"
                 connected = false
+                threadBT?.interrupt()
                 stopConnection()
             } else {
                 button_connection.text = "Stop connection"
+                removeTexts()
                 connected = true
                 graph_waveform_sound.removeAllSeries()
                 startConnection()
+                socket?.let{itSocket ->
+                    sendMessage(itSocket, "speaker")
+                }
                 readPositionMessage()
 
-                readSoundMessage()
-                updateGraphSound()
-                playSound()
+                //speaker()
+                socket?.let{
+                    threadBT = ThreadSpeakers(it, sampleRate,this)
+                    threadBT?.start()
+                }
             }
         }
 
@@ -362,22 +330,6 @@ class Activity4Speaker : AppCompatActivity() {
 
     // ------------------------------ Helper ------------------------------
 
-    // ---------- Use to change Short to Byte ----------
-    infix fun Short.and(that: Int): Int = this.toInt().and(that)
-
-    infix fun Short.shr(that: Int): Int = this.toInt().shr(that)
-
-    private fun short2byte(sData: ShortArray): ByteArray {
-        val shortArrsize = sData.size
-        val bytes = ByteArray(shortArrsize * 2)
-        for (i in 0 until shortArrsize) {
-            bytes[i * 2] = (sData[i] and 0x00FF).toByte()
-            bytes[i * 2 + 1] = (sData[i] shr 8).toByte()
-            sData[i] = 0
-        }
-        return bytes
-    }
-
     inline fun <reified T> listToArray(list: List<*>): Array<T> {
         // Create a list from an array
         return (list as List<T>).toTypedArray()
@@ -385,11 +337,18 @@ class Activity4Speaker : AppCompatActivity() {
 
     // ------------------------------ Create sound ------------------------------
 
-    private fun updateGraphSound() {
-        // Used to plot the recorded Sound
-        soundToPlay?.let {
+    private fun removeTexts() {
+        text_position_x.text = ""
+        text_position_y.text = ""
+        text_start_play.text = ""
+        text_start_play_true.text = ""
+    }
+
+    fun updateGraphSound(sound: ArrayList<Short>) {
+        runOnUiThread(Runnable {
+            // Used to plot the recorded Sound
             // Create the DataPoint
-            val dataPoints: List<DataPoint> = it.mapIndexed { index, sh ->
+            val dataPoints: List<DataPoint> = sound.mapIndexed { index, sh ->
                 DataPoint(
                     index.toDouble() / sampleRate.toDouble(),
                     sh.toDouble()
@@ -402,50 +361,21 @@ class Activity4Speaker : AppCompatActivity() {
             graph_waveform_sound.addSeries(series)
             graph_waveform_sound.setTitle("Recorded")
             graph_waveform_sound.getViewport().setScalable(true)
-        }
+        })
     }
 
-    // ------------------------------ Play sound ------------------------------
-
-    private fun playSound(){
-        text_view_state.text = "Prepare for playing the sound..."
-        soundToPlay?.let{itSoundToPlay ->
-            val createdSoundArray: ShortArray = ShortArray(itSoundToPlay.size){i ->
-                itSoundToPlay[i].toShort()
-            }
-            val track = AudioTrack( AudioManager.STREAM_ALARM, sampleRate, playerChannels, playerAudioEncoding, itSoundToPlay.size, playerMode)
-            track.write(createdSoundArray, 0, itSoundToPlay.size)
-            val handler = Handler()
-            Log.d("playSound", "startPlay $startPlay - currentDate ${Calendar.getInstance().timeInMillis}")
-            startPlay?.let{itStartPlay ->
-                val startOffset = itStartPlay - Calendar.getInstance().timeInMillis
-                handler.postDelayed({
-                    playSoundHandled(track)
-                }, startOffset)
-            }
-        }
-    }
-    private fun playSoundHandled(track:AudioTrack){
-        startPlayTruth = Calendar.getInstance().timeInMillis
-        track.play()
-        Log.d("playSoundHandled", "after trackPlay")
-        sendStartPlayTruth()
-    }
     // ------------------------------ Bluetooth ------------------------------
 
     private fun getUUID(){
-        val s = "ae465fd9-2d3b-a4c6-4385-ea69b4c1e23c${speakerNumber - 1}"
+        val s = "ae465fd9-2d3b-a4c6-4385-ea69b4c1e23c" //${speakerNumber - 1}"
         uuid = UUID.fromString(s)
     }
 
     private fun startConnection() {
         text_view_state.text = "Initialazing connection..."
         try{
-            println("before the soeaker number")
             speakerNumber = form_speaker_number.text.toString().toInt()
-            println("before the UUID")
             getUUID()
-            println("Got the UUID")
             socket = connectedBluetoothDevice?.createRfcommSocketToServiceRecord(uuid)
             socket?.connect()
             inputStream = socket?.inputStream
@@ -467,51 +397,20 @@ class Activity4Speaker : AppCompatActivity() {
         text_view_state.text = "Press START CONNECTION"
     }
 
-    private fun readMessage(): String{
-        try{
-            var available = inputStream?.available()
-            while(available == 0){
-                Thread.sleep(200)
-                available = inputStream?.available()
-            }
-            var text = ""
-            while (available != 0){
-                available?.let{ itAvailable ->
-                    val bytes = ByteArray(itAvailable)
-                    Log.i("readMessage", "Reading")
-                    inputStream?.read(bytes, 0, itAvailable)
-                    Log.i("readMessage", "InputStream $inputStream")
-                    Log.i("readMessage", "available $itAvailable")
-                    text += String(bytes)
-                    Log.i("readMessage", "Message received: text $text")
-                    Thread.sleep(100)
-                    available = inputStream?.available()
-                }
-            }
-            return text
-        } catch (e: java.lang.Exception){
-            Log.e("readMessage", "Cannot read data", e)
-            return e.toString()
-        } catch (e: java.lang.NullPointerException){
-            Log.e("readMessage", "Input Stream not available", e)
-            return e.toString()
-        }
-        val text = "Didn't get any text"
-        Log.e("readMessage", text)
-        return text
-    }
 
     private fun readPositionMessage(){
         Log.d("ReadPositionMessage", "in function")
         text_view_state.text = "Getting the position..."
         try {
-            val message = readMessage()
-            val messageJSON = Klaxon().parse<BluetoothSpeakerPosition>(message)
-            positionX = messageJSON?.x
-            positionY = messageJSON?.y
-            Log.d("readPositionMessage", "X $positionX, Y $positionY")
-            text_position_x.text = positionX.toString()
-            text_position_y.text = positionY.toString()
+            socket?.let{itSocket ->
+                val message = readMessage(itSocket)
+                val messageJSON = Klaxon().parse<BluetoothSpeakerPosition>(message)
+                positionX = messageJSON?.x
+                positionY = messageJSON?.y
+                Log.d("readPositionMessage", "X $positionX, Y $positionY")
+                text_position_x.text = positionX.toString()
+                text_position_y.text = positionY.toString()
+            }
         } catch (e: KlaxonException){
             Log.e("readTriggerData", "Cannot parse the data", e)
             text_position_x.text = e.toString()
@@ -520,39 +419,27 @@ class Activity4Speaker : AppCompatActivity() {
     }
 
 
-    private fun readSoundMessage(){
-        Log.d("ReadSoundMessage", "in function")
-        text_view_state.text = "Getting the sound to play..."
-        try {
-            val message = readMessage()
-            val messageJSON = Klaxon().parse<BluetoothSpeakerSound>(message)
-            Log.d("ReadSoundMessage", "Klaxon OK")
-            startPlay = messageJSON?.start
-            soundToPlay = messageJSON?.sound
-            text_start_play.text = startPlay.toString()
-        } catch (e: KlaxonException){
-            Log.e("readTriggerData", "Cannot parse the data", e)
-            text_start_play.text = e.toString()
-        }
+    // ------------------------------ Set texts ------------------------------
+
+    fun setTextViewState(text: String){
+        runOnUiThread(Runnable {
+            text_view_state.text = text
+        })
     }
 
-    private fun sendStartPlayTruth(){
-        text_view_state.text = "Send the True Start Date"
-        startPlayTruth?.let{itStartPlayTruth ->
-            val startPlayTruthString = Klaxon().toJsonString(
-                BluetoothSpeakerTrueStart(start=itStartPlayTruth)
-            )
-            text_start_play_true.text = itStartPlayTruth.toString()
-            try {
-                outputStream?.write(startPlayTruthString.toByteArray())
-                outputStream?.flush()
-                Log.i("sendStartPlayTruth", "Sent")
-            } catch (e: Exception) {
-                Log.e("sendStartPlayTruth", "Cannot send", e)
-            }
-            Toast.makeText(this, "Message sent", Toast.LENGTH_SHORT).show()
-        }
+    fun setTextStartPlay(text: String){
+        runOnUiThread(Runnable{
+            text_start_play.text = text
+        })
     }
+
+    fun setTextStartPlayTrue(text: String){
+        runOnUiThread(Runnable{
+            text_start_play_true.text = text
+        })
+    }
+
+
 }
 
 
